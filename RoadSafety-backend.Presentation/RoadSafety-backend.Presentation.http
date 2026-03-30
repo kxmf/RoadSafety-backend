@@ -1,0 +1,6 @@
+@RoadSafety_backend.Presentation_HostAddress = http://localhost:5103
+
+GET {{RoadSafety_backend.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

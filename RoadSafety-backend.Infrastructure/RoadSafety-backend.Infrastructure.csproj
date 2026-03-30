@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>RoadSafety_backend.Infrastructure</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadSafety-backend.Application\RoadSafety-backend.Application.csproj" />
+    <ProjectReference Include="..\RoadSafety-backend.Domain\RoadSafety-backend.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
