@@ -3,5 +3,5 @@
 public enum UserRole
 {
     Parent,
-    Children
+    Child
 }

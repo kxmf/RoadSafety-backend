@@ -9,7 +9,9 @@ public sealed record UserContacts
 
     public UserContacts(string? mailAddress, PhoneNumber? phoneNumber)
     {
-        MailAddress = new MailAddress(mailAddress);
+        if (mailAddress != null)
+            MailAddress = new MailAddress(mailAddress);
+
         PhoneNumber = phoneNumber;
     }
 

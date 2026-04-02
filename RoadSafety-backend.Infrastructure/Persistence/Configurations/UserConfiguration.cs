@@ -1,0 +1,51 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RoadSafety_backend.Domain.Entities;
+
+namespace RoadSafety_backend.Infrastructure.Persistence.Configurations;
+
+public class UserConfiguration : IEntityTypeConfiguration<User>
+{
+    public void Configure(EntityTypeBuilder<User> builder)
+    {
+        builder.ToTable("users");
+
+        builder.HasKey(x => x.Id);
+
+        builder.OwnsOne(x => x.Profile, profile =>
+        {
+            profile.Property(p => p.FirstName)
+                .HasColumnName("first_name")
+                .IsRequired()
+                .HasMaxLength(100);
+
+            profile.Property(p => p.LastName)
+                .HasColumnName("last_name")
+                .IsRequired()
+                .HasMaxLength(100);
+
+            profile.Property(p => p.Patronymic)
+                .HasColumnName("patronymic")
+                .HasMaxLength(100);
+
+            profile.Property(p => p.BirthDate)
+                .HasColumnType("date")
+                .HasColumnName("birth_date");
+        });
+
+        builder.OwnsOne(x => x.Contacts, contacts =>
+        {
+            contacts.Property(c => c.MailAddress)
+                .HasColumnName("mail_address")
+                .HasColumnType("citext")
+                .HasMaxLength(255);
+
+            contacts.Property(c => c.PhoneNumber)
+                .HasColumnName("phone_number")
+                .HasMaxLength(20);
+
+            contacts.HasIndex(c => c.MailAddress).IsUnique();
+            contacts.HasIndex(c => c.PhoneNumber).IsUnique();
+        });
+    }
+}

@@ -1,12 +1,11 @@
-﻿using RoadSafety_backend.Domain.Enums;
-using RoadSafety_backend.Domain.ValueObjects;
+﻿using RoadSafety_backend.Domain.ValueObjects;
+using RoadSafety_backend.Domain.ValueObjects.IDs;
 
 namespace RoadSafety_backend.Domain.Entities;
 
-public class User
+public class User(UserProfile profile, UserContacts contacts)
 {
-    public UserId Id { get; init; }
-    public UserProfile UserProfile { get; private set; }
-    public UserContacts Contacts { get; private set; }
-    public UserRole UserRole { get; private set; }
+    public UserId Id { get; init; } = UserId.New();
+    public UserProfile Profile { get; private set; } = profile;
+    public UserContacts Contacts { get; private set; } = contacts;
 }

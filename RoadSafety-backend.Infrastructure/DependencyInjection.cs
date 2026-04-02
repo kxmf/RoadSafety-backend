@@ -1,6 +1,6 @@
 ﻿namespace RoadSafety_backend.Infrastructure;
 
-public class Class1
+public static class DependencyInjection
 {
 
 }

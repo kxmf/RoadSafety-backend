@@ -1,4 +1,4 @@
-﻿namespace RoadSafety_backend.Domain.ValueObjects;
+﻿namespace RoadSafety_backend.Domain.ValueObjects.IDs;
 
 public sealed record UserId(Guid Id)
 {
