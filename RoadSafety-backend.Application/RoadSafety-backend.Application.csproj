@@ -11,4 +11,8 @@
     <ProjectReference Include="..\RoadSafety-backend.Domain\RoadSafety-backend.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOs\Requests\" />
+  </ItemGroup>
+
 </Project>

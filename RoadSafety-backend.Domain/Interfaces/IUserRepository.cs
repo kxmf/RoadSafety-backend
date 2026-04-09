@@ -5,11 +5,11 @@ namespace RoadSafety_backend.Domain.Interfaces;
 
 public interface IUserRepository
 {
-    Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken = default);
+    Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken);
 
-    Task<User> CreateUserAsync(User user, CancellationToken cancellationToken = default);
+    Task<User> CreateUserAsync(User user, CancellationToken cancellationToken);
 
-    Task<User> UpdateUserAsync(User user, CancellationToken cancellationToken = default);
+    Task UpdateUserAsync(User newUser, CancellationToken cancellationToken);
 
-    Task<User> DeleteUserAsync(UserId id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteUserByIdAsync(UserId id, CancellationToken cancellationToken);
 }

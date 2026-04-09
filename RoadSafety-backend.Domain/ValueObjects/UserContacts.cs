@@ -7,21 +7,14 @@ public sealed record UserContacts
     public MailAddress? MailAddress { get; init; }
     public PhoneNumber? PhoneNumber { get; init; }
 
-    public UserContacts(string? mailAddress, PhoneNumber? phoneNumber)
+    public UserContacts(string? email = null, PhoneNumber? phoneNumber = null)
     {
-        if (mailAddress != null)
-            MailAddress = new MailAddress(mailAddress);
+        if (string.IsNullOrWhiteSpace(email) && phoneNumber == null)
+            throw new ArgumentException("User must have at least one contact method: Email or Phone.");
+
+        if (!string.IsNullOrWhiteSpace(email))
+            MailAddress = new MailAddress(email);
 
         PhoneNumber = phoneNumber;
-    }
-
-    public UserContacts(string mailAddress)
-         : this(mailAddress, null)
-    {
-    }
-
-    public UserContacts(PhoneNumber phoneNumber)
-         : this(null, phoneNumber)
-    {
     }
 }

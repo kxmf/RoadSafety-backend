@@ -16,12 +16,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         {
             profile.Property(p => p.FirstName)
                 .HasColumnName("first_name")
-                .IsRequired()
                 .HasMaxLength(100);
 
             profile.Property(p => p.LastName)
                 .HasColumnName("last_name")
-                .IsRequired()
                 .HasMaxLength(100);
 
             profile.Property(p => p.Patronymic)

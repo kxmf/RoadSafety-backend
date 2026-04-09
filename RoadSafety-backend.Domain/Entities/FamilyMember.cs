@@ -8,5 +8,7 @@ public class FamilyMember(FamilyId familyId, UserId userId, UserRole userRole)
     public FamilyMemberId Id { get; init; } = FamilyMemberId.New();
     public FamilyId FamilyId { get; init; } = familyId;
     public UserId UserId { get; init; } = userId;
-    public UserRole UserRole { get; init; } = userRole;
+    public UserRole UserRole { get; private set; } = userRole;
+
+    internal void UpdateRole(UserRole newUserRole) => UserRole = newUserRole;
 }
