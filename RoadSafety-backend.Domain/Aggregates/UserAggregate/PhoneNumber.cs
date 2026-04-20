@@ -1,14 +1,14 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace RoadSafety_backend.Domain.ValueObjects;
+namespace RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 public sealed record PhoneNumber
 {
     private static readonly Regex PhoneRegex = new(@"^\+[1-9]\d{1,14}$", RegexOptions.Compiled);
 
-    public string Value { get; init; }
+    public string? Value { get; init; }
 
-    public PhoneNumber(string rawPhoneNumber)
+    public PhoneNumber(string? rawPhoneNumber)
     {
         var cleaned = Normalize(rawPhoneNumber);
 
@@ -20,7 +20,7 @@ public sealed record PhoneNumber
         Value = cleaned;
     }
 
-    private static string Normalize(string phone)
+    private static string Normalize(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return string.Empty;
 

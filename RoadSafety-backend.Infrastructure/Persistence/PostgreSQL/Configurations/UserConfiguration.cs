@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using RoadSafety_backend.Domain.Entities;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
-namespace RoadSafety_backend.Infrastructure.Persistence.Configurations;
+namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -45,5 +47,15 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             contacts.HasIndex(c => c.MailAddress).IsUnique();
             contacts.HasIndex(c => c.PhoneNumber).IsUnique();
         });
+
+        builder.HasOne(x => x.FamilyMember)
+            .WithOne(fm => fm.User)
+            .HasForeignKey<FamilyMember>(fm => fm.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
+}
+
+public class UserIdConverter : ValueConverter<UserId, Guid>
+{
+    public UserIdConverter() : base(id => id.Id, value => new UserId(value)) { }
 }

@@ -1,4 +1,4 @@
-﻿namespace RoadSafety_backend.Domain.ValueObjects;
+﻿namespace RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 public sealed record UserProfile
 {

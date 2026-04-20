@@ -1,7 +1,4 @@
-﻿using RoadSafety_backend.Domain.Entities;
-using RoadSafety_backend.Domain.ValueObjects.IDs;
-
-namespace RoadSafety_backend.Domain.Interfaces;
+﻿namespace RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 public interface IUserRepository
 {
@@ -9,7 +6,7 @@ public interface IUserRepository
 
     Task<User> CreateUserAsync(User user, CancellationToken cancellationToken);
 
-    Task UpdateUserAsync(User newUser, CancellationToken cancellationToken);
+    Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken);
 
     Task<bool> DeleteUserByIdAsync(UserId id, CancellationToken cancellationToken);
 }

@@ -1,10 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RoadSafety_backend.Domain.Entities;
-using RoadSafety_backend.Domain.Interfaces;
-using RoadSafety_backend.Domain.ValueObjects.IDs;
-using RoadSafety_backend.Infrastructure.Persistence.Context;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
+using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 
-namespace RoadSafety_backend.Infrastructure.Persistence.Repositories;
+namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
 
 public sealed class UserRepository(UserDbContext dbContext) : IUserRepository
 {
@@ -39,7 +37,7 @@ public sealed class UserRepository(UserDbContext dbContext) : IUserRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task UpdateUserAsync(User newUser, CancellationToken cancellationToken)
+    public async Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == newUser.Id, cancellationToken);
 
@@ -52,5 +50,7 @@ public sealed class UserRepository(UserDbContext dbContext) : IUserRepository
             user = newUser;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return user;
     }
 }
