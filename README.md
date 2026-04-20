@@ -6,7 +6,7 @@
 Код разделен на четыре проекта (Domain, Application, Infrastructure. Presentation) и структура выглядит подобным образом:
 
 ```
-RoadSafety-backend
+RoadSafety-backend/
 ├── RoadSafety-backend.Domain/
 |   └── Aggregates/
 |       ├── FamilyAggregate/
@@ -26,28 +26,58 @@ RoadSafety-backend
 |           └── IUserRepository.cs (Interface)
 ├── RoadSafety-backend.Application/
 |   ├── DTOs/
+|   |   ├── Requests/
+|   |   |   ├── Auth/
+|   |   |   ├── User/
+|   |   |   |   ├── UpdatePasswordRequest.cs
+|   |   |   |   ├── UpdateEmailRequest.cs
+|   |   |   |   ├── UpdatePhoneNumberRequest.cs
+|   |   |   |   └── UpdateProfileRequest.cs
+|   |   |   └── Family/
+|   |   └── Responses/
+|   |       ├── Auth/
+|   |       ├── User
+|   |       |   ├── UpdatePasswordResponse.cs
+|   |       |   ├── UpdateEmailResponse.cs
+|   |       |   ├── UpdatePhoneNumberResponse.cs
+|   |       |   └── UpdateProfileResponse.cs
+|   |       └── Family/
 |   ├── UseCases/
 |   |   ├── Auth/
-|   |   |   ├── RegisterUserUseCase.cs
+|   |   |   ├── RegisterUseCase.cs
 |   |   |   ├── LoginUseCase.cs
 |   |   |   ├── RefreshTokenUseCase.cs
 |   |   |   └── LogOutUseCase.cs
 |   |   ├── User/
+|   |   |   ├── UpdatePasswordUseCase.cs
+|   |   |   ├── UpdateEmailUseCase.cs
+|   |   |   ├── UpdatePhoneNumberUseCase.cs
+|   |   |   └── UpdateProfileUseCase.cs
 |   |   └── Family/
 |   └── Interfaces/
 ├── RoadSafety-backend.Infrastucture/
 |   └── Persistence/
-|       └── PostgreSQL/
-|           ├── Configurations/
-|           |   ├── FamilyConfiguration.cs
-|           |   ├── FamilyMemberConfiguration.cs
-|           |   └── UserConfiguration.cs
-|           ├── Context/
-|           |   └── ApplicationDbContext.cs
-|           ├── Repositories/
-|           |   ├── UserRepository.cs
-|           |   └── FamilyRepository.cs
-|           └── Migrations
+|   |   └── PostgreSQL/
+|   |      ├── Configurations/
+|   |      |   ├── 
+|   |      |   ├── FamilyConfiguration.cs
+|   |      |   ├── FamilyMemberConfiguration.cs
+|   |      |   └── UserConfiguration.cs
+|   |      ├── Context/
+|   |      |   └── ApplicationDbContext.cs
+|   |      ├── Repositories/
+|   |      |   ├── UserRepository.cs
+|   |      |   └── FamilyRepository.cs
+|   |      └── Migrations
+|   └── Identity/
+|       └── Models/
+|           └── Aggregates/
+|               └── SessionAggegate/
+|                   ├── Session.cs (Root)
+|                   ├── RefreshToken.cs (Entity)
+|                   ├── SessionId.cs (VO)
+|                   ├── RefreshTokenId.cs (VO)
+|                   └── ISessionRepository.cs (Interface)
 └── RoadSafety-backend.Presentation/
     ├── Controllers/
     |   ├── UsersController.cs
