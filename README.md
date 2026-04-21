@@ -15,19 +15,28 @@ RoadSafety-backend/
 |       |   ├── FamilyMember.cs (Entity)
 |       |   ├── FamilyMemberRole.cs (Enum)
 |       |   ├── FamilyCode.cs (VO)
-|       |   └── IFamilyRepository.cs (Interface)
-|       └── UserAggregate/
-|           ├── User.cs (Root)
-|           ├── UserId.cs (VO)
-|           ├── UserContacts.cs (VO)
-|           ├── UserProfile.cs (VO)
-|           ├── PhoneNumber (VO)
-|           ├── Password (VO)
-|           └── IUserRepository.cs (Interface)
+|       |   └── IFamilyRepository.cs (Interface)   
+|       ├── UserAggregate/
+|       |   ├── User.cs (Root)
+|       |   ├── UserId.cs (VO)
+|       |   ├── UserContacts.cs (VO)
+|       |   ├── UserProfile.cs (VO)
+|       |   ├── PhoneNumber (VO)
+|       |   ├── Password (VO)
+|       |   └── IUserRepository.cs (Interface)
+|       └── SessionAggregate/
+|           ├── Session.cs (Root)
+|           ├── RefreshToken.cs (Entity)
+|           ├── SessionId.cs (VO)
+|           ├── RefreshTokenId.cs (VO)
+|           └── ISessionRepository.cs (Interface)
 ├── RoadSafety-backend.Application/
 |   ├── DTOs/
 |   |   ├── Requests/
 |   |   |   ├── Auth/
+|   |   |   |   ├── RegisterRequest.cs
+|   |   |   |   ├── LoginRequest.cs
+|   |   |   |   └── LogOutRequest.cs
 |   |   |   ├── User/
 |   |   |   |   ├── UpdatePasswordRequest.cs
 |   |   |   |   ├── UpdateEmailRequest.cs
@@ -36,6 +45,9 @@ RoadSafety-backend/
 |   |   |   └── Family/
 |   |   └── Responses/
 |   |       ├── Auth/
+|   |       |   ├── RegisterResponse.cs
+|   |       |   ├── LoginResponse.cs
+|   |       |   └── LogOutResponse.cs
 |   |       ├── User
 |   |       |   ├── UpdatePasswordResponse.cs
 |   |       |   ├── UpdateEmailResponse.cs
@@ -57,27 +69,20 @@ RoadSafety-backend/
 |   └── Interfaces/
 ├── RoadSafety-backend.Infrastucture/
 |   └── Persistence/
-|   |   └── PostgreSQL/
-|   |      ├── Configurations/
-|   |      |   ├── 
-|   |      |   ├── FamilyConfiguration.cs
-|   |      |   ├── FamilyMemberConfiguration.cs
-|   |      |   └── UserConfiguration.cs
-|   |      ├── Context/
-|   |      |   └── ApplicationDbContext.cs
-|   |      ├── Repositories/
-|   |      |   ├── UserRepository.cs
-|   |      |   └── FamilyRepository.cs
-|   |      └── Migrations
-|   └── Identity/
-|       └── Models/
-|           └── Aggregates/
-|               └── SessionAggegate/
-|                   ├── Session.cs (Root)
-|                   ├── RefreshToken.cs (Entity)
-|                   ├── SessionId.cs (VO)
-|                   ├── RefreshTokenId.cs (VO)
-|                   └── ISessionRepository.cs (Interface)
+|       └── PostgreSQL/
+|           ├── Configurations/
+|           |   ├── SessionConfiguration.cs
+|           |   ├── RefreshTokenConfiguration.cs
+|           |   ├── FamilyConfiguration.cs
+|           |   ├── FamilyMemberConfiguration.cs
+|           |   └── UserConfiguration.cs
+|           ├── Context/
+|           |   └── ApplicationDbContext.cs
+|           ├── Repositories/
+|           |   ├── SessionRepository.cs
+|           |   ├── UserRepository.cs
+|           |   └── FamilyRepository.cs
+|           └── Migrations/
 └── RoadSafety-backend.Presentation/
     ├── Controllers/
     |   ├── UsersController.cs
