@@ -1,10 +1,14 @@
-﻿namespace RoadSafety_backend.Domain.Aggregates.SessionAggregate;
+﻿using RoadSafety_backend.Domain.Aggregates.UserAggregate;
+
+namespace RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 
 public class RefreshToken
 {
     public RefreshTokenId Id { get; init; }
 
     public string TokenHash { get; init; }
+
+    public UserId UserId { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset ExpiresAt { get; init; }
