@@ -17,4 +17,16 @@ public class RefreshToken
     public bool IsRevoked { get; private set; }
 
     public RefreshTokenId? ReplacedByTokenId { get; private set; }
+
+    public RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset createdAt, DateTimeOffset expiresAt, bool isUsed, bool isRevoked, RefreshTokenId? replacedByTokenId)
+    {
+        Id = id;
+        TokenHash = tokenHash;
+        UserId = userId;
+        CreatedAt = createdAt;
+        ExpiresAt = expiresAt;
+        IsUsed = isUsed;
+        IsRevoked = isRevoked;
+        ReplacedByTokenId = replacedByTokenId;
+    }
 }

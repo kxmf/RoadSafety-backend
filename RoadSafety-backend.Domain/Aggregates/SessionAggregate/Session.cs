@@ -12,4 +12,13 @@ public class Session
     public RefreshToken RefreshToken { get; private set; }
 
     public bool IsRevoked { get; private set; }
+
+    public Session(SessionId id, UserId userId, RefreshTokenId refreshTokenId, RefreshToken refreshToken, bool isRevoked)
+    {
+        Id = id;
+        UserId = userId;
+        RefreshTokenId = refreshTokenId;
+        RefreshToken = refreshToken;
+        IsRevoked = isRevoked;
+    }
 }

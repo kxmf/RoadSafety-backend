@@ -4,6 +4,10 @@ public interface IUserRepository
 {
     Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken);
 
+    Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken);
+
+    Task<User?> GetUserByPhoneAsync(string phone, CancellationToken cancellationToken);
+
     Task<User> CreateUserAsync(User user, CancellationToken cancellationToken);
 
     Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken);
