@@ -12,10 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\Requests\" />
-    <Folder Include="DTOs\Responses\" />
-    <Folder Include="Interfaces\" />
-    <Folder Include="UseCases\" />
+    <Folder Include="UseCases\User\" />
+    <Folder Include="UseCases\Family\" />
   </ItemGroup>
 
 </Project>
