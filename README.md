@@ -25,7 +25,6 @@ RoadSafety-backend/
 |       |   ├── UserContacts.cs (VO)
 |       |   ├── UserProfile.cs (VO)
 |       |   ├── PhoneNumber (VO)
-|       |   ├── Password (VO)
 |       |   └── IUserRepository.cs (Interface)
 |       └── SessionAggregate/
 |           ├── Session.cs (Root)
@@ -71,6 +70,7 @@ RoadSafety-backend/
 |   |   └── Family/
 |   └── Interfaces/
 |       ├── ITokenService.cs
+|       ├── IUnitOfWork.cs
 |       └── IPasswordHasher.cs
 ├── RoadSafety-backend.Infrastucture/
 |   └── Persistence/
@@ -84,11 +84,14 @@ RoadSafety-backend/
 |       |   ├── Context/
 |       |   |   └── ApplicationDbContext.cs
 |       |   ├── Repositories/
+|       |   |   ├── UnifOfWork.cs
 |       |   |   ├── SessionRepository.cs
 |       |   |   ├── UserRepository.cs
 |       |   |   └── FamilyRepository.cs
 |       |   └── Migrations/
 |       └── Services/
+|           ├── Settings/
+|           |   └── JwtSettings.cs
 |           ├── PasswordHasher.cs
 |           └── JwtTokenService.cs
 └── RoadSafety-backend.Presentation/
