@@ -8,6 +8,9 @@
 ```
 RoadSafety-backend/
 ├── RoadSafety-backend.Domain/
+|   ├── Common/
+|   |   ├── Result.cs
+|   |   └── Error.cs
 |   └── Aggregates/
 |       ├── FamilyAggregate/
 |       |   ├── Family.cs (Root)
@@ -67,22 +70,27 @@ RoadSafety-backend/
 |   |   |   └── UpdateProfileUseCase.cs
 |   |   └── Family/
 |   └── Interfaces/
+|       ├── ITokenService.cs
+|       └── IPasswordHasher.cs
 ├── RoadSafety-backend.Infrastucture/
 |   └── Persistence/
 |       └── PostgreSQL/
-|           ├── Configurations/
-|           |   ├── SessionConfiguration.cs
-|           |   ├── RefreshTokenConfiguration.cs
-|           |   ├── FamilyConfiguration.cs
-|           |   ├── FamilyMemberConfiguration.cs
-|           |   └── UserConfiguration.cs
-|           ├── Context/
-|           |   └── ApplicationDbContext.cs
-|           ├── Repositories/
-|           |   ├── SessionRepository.cs
-|           |   ├── UserRepository.cs
-|           |   └── FamilyRepository.cs
-|           └── Migrations/
+|       |   ├── Configurations/
+|       |   |   ├── SessionConfiguration.cs
+|       |   |   ├── RefreshTokenConfiguration.cs
+|       |   |   ├── FamilyConfiguration.cs
+|       |   |   ├── FamilyMemberConfiguration.cs
+|       |   |   └── UserConfiguration.cs
+|       |   ├── Context/
+|       |   |   └── ApplicationDbContext.cs
+|       |   ├── Repositories/
+|       |   |   ├── SessionRepository.cs
+|       |   |   ├── UserRepository.cs
+|       |   |   └── FamilyRepository.cs
+|       |   └── Migrations/
+|       └── Services/
+|           ├── passwordHasher.cs
+|           └── JwtTokenService.cs
 └── RoadSafety-backend.Presentation/
     ├── Controllers/
     |   ├── UsersController.cs
