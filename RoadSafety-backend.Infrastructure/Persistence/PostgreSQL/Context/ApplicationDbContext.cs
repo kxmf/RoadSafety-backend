@@ -4,6 +4,8 @@ using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
 
+namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
+
 public class ApplicationDbContext : DbContext
 {
     public DbSet<User> Users { get; set; }

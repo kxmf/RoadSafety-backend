@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
+using System.Net.Mail;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
 
-public sealed class UserRepository(UserDbContext dbContext) : IUserRepository
+public sealed class UserRepository(ApplicationDbContext dbContext) : IUserRepository
 {
-    private readonly UserDbContext _dbContext = dbContext;
+    private readonly ApplicationDbContext _dbContext = dbContext;
 
     public async Task<User> CreateUserAsync(User user, CancellationToken cancellationToken)
     {
@@ -30,11 +31,25 @@ public sealed class UserRepository(UserDbContext dbContext) : IUserRepository
         return true;
     }
 
+    public async Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Contacts.MailAddress == new MailAddress(email), cancellationToken);
+    }
+
     public async Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken)
     {
         return await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<User?> GetUserByPhoneAsync(string phone, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Contacts.PhoneNumber == new PhoneNumber(phone), cancellationToken);
     }
 
     public async Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken)
