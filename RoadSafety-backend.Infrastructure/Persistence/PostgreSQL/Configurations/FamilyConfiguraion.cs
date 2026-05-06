@@ -11,14 +11,6 @@ public class FamilyConfiguraion : IEntityTypeConfiguration<Family>
         builder.ToTable("families");
 
         builder.HasKey(x => x.Id);
-
-        builder.Metadata.FindNavigation(nameof(Family.Members))!
-            .SetPropertyAccessMode(PropertyAccessMode.Field);
-
-        builder.HasMany(x => x.Members)
-            .WithOne(fm => fm.Family)
-            .HasForeignKey(x => x.FamilyId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

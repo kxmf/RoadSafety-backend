@@ -20,6 +20,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(rt => rt.TokenHash)
             .IsUnique();
 
+        builder.Property(rt => rt.SessionId)
+            .IsRequired();
+
         builder.Property(rt => rt.CreatedAt)
             .IsRequired();
 

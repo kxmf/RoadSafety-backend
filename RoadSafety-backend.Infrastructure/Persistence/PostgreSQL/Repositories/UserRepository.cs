@@ -9,11 +9,21 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
+    public async Task<bool> IsEmailInUseAsync(string email, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AnyAsync(u => u.Contacts.MailAddress == new MailAddress(email), cancellationToken);
+    }
+
+    public async Task<bool> IsPhoneInUseAsync(string phone, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AnyAsync(u => u.Contacts.PhoneNumber == new PhoneNumber(phone), cancellationToken);
+    }
+
     public async Task<User> CreateUserAsync(User user, CancellationToken cancellationToken)
     {
         _dbContext.Users.Add(user);
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return user;
     }
@@ -26,7 +36,6 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
             return false;
 
         _dbContext.Users.Remove(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }
@@ -63,8 +72,6 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
         }
         else
             user = newUser;
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return user;
     }

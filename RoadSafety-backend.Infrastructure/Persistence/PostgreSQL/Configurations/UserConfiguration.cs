@@ -12,9 +12,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.ToTable("users");
 
-        builder.HasKey(x => x.Id);
+        builder.HasKey(u => u.Id);
 
-        builder.OwnsOne(x => x.Profile, profile =>
+        builder.OwnsOne(u => u.Profile, profile =>
         {
             profile.Property(p => p.FirstName)
                 .HasColumnName("first_name")
@@ -33,7 +33,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 .HasColumnName("birth_date");
         });
 
-        builder.OwnsOne(x => x.Contacts, contacts =>
+        builder.OwnsOne(u => u.Contacts, contacts =>
         {
             contacts.Property(c => c.MailAddress)
                 .HasColumnName("mail_address")
@@ -48,10 +48,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             contacts.HasIndex(c => c.PhoneNumber).IsUnique();
         });
 
-        builder.HasOne(x => x.FamilyMember)
-            .WithOne(fm => fm.User)
-            .HasForeignKey<FamilyMember>(fm => fm.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Family>()
+               .WithMany()
+               .HasForeignKey(u => u.FamilyId)
+               .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

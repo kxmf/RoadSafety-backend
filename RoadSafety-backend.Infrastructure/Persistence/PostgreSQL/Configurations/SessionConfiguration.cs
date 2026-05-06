@@ -17,9 +17,9 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IsRevoked)
             .HasDefaultValue(false);
 
-        builder.HasOne(s => s.RefreshToken)
+        builder.HasMany(s => s.RefreshTokens)
             .WithOne()
-            .HasForeignKey<Session>(s => s.RefreshTokenId)
+            .HasForeignKey(s => s.SessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne<User>()
@@ -28,7 +28,6 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(s => s.UserId);
-        builder.HasIndex(s => s.RefreshTokenId).IsUnique();
     }
 }
 

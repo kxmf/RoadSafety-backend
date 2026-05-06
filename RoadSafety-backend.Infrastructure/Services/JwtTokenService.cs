@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RoadSafety_backend.Application.Interfaces;
-using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Services.Settings;
@@ -15,13 +14,13 @@ namespace RoadSafety_backend.Infrastructure.Services;
 public class JwtTokenService : ITokenService
 {
     private readonly JwtSettings _settings;
-    
+
     public JwtTokenService(IOptions<JwtSettings> settings)
     {
         _settings = settings.Value;
     }
 
-    public (string AccessTokenHash, DateTime AccessTokenExpirationDateTime) GenerateAccessToken(User user, FamilyMemberRole familyMemberRole)
+    public (string AccessTokenHash, DateTime AccessTokenExpirationDateTime) GenerateAccessToken(User user)
     {
         var expirationTime = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
 
@@ -29,7 +28,7 @@ public class JwtTokenService : ITokenService
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.Role, familyMemberRole.ToString())
+            new(ClaimTypes.Role, user.Role.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
@@ -46,20 +45,30 @@ public class JwtTokenService : ITokenService
         return (new JwtSecurityTokenHandler().WriteToken(token), expirationTime);
     }
 
-    public RefreshToken GenerateRefreshToken(UserId userId)
+    public (string PlainRefreshToken, RefreshToken RefreshToken) GenerateRefreshToken(UserId userId, SessionId sessionId)
     {
         var randomNumber = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
+        var plainToken = Convert.ToBase64String(randomNumber);
 
-        return new RefreshToken(
+        var tokenHash = HashToken(plainToken);
+
+        var refreshToken = RefreshToken.Create(
             RefreshTokenId.New(),
-            Convert.ToBase64String(randomNumber),
+            tokenHash,
             userId,
+            sessionId,
             DateTime.UtcNow,
-            DateTime.UtcNow.AddDays(7),
-            false,
-            false,
-            null);
+            DateTime.UtcNow.AddDays(7));
+
+        return (plainToken, refreshToken);
+    }
+
+    public string HashToken(string plainToken)
+    {
+        var bytes = Encoding.UTF8.GetBytes(plainToken);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToBase64String(hash);
     }
 }
