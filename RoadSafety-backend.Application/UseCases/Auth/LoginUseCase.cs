@@ -26,10 +26,10 @@ public class LoginUseCase(
             user = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
 
         if (user == null)
-            return Result<AuthResponse>.Failure(new Error(401, "Incorrect login or password"));
+            return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
 
         if (!passwordService.Verify(request.Password, user.HashedPassword))
-            return Result<AuthResponse>.Failure(new Error(401, "Incorrect login or password"));
+            return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
 
         var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
         var sessionId = SessionId.New();

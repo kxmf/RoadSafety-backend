@@ -20,12 +20,12 @@ public class RefreshTokensUseCase(
         var session = await sessionRepository.GetSessionByRefreshTokenHashAsync(refreshTokenHash, cancellationToken);
 
         if (session == null)
-            return Result<RefreshTokensResponse>.Failure(new Error(401, "Invalid refresh token"));
+            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
 
         var user = await userRepository.GetUserByIdAsync(session.UserId, cancellationToken);
 
         if (user == null)
-            return Result<RefreshTokensResponse>.Failure(new Error(404, "user not found"));
+            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.NotFound, "user not found"));
 
         var (plainRefreshToken, newRefreshToken) = tokenService.GenerateRefreshToken(session.UserId, session.Id);
 
