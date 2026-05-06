@@ -1,4 +1,4 @@
-﻿using RoadSafety_backend.Application.DTOs.Requests.Auth;
+using RoadSafety_backend.Application.DTOs.Requests.Auth;
 using RoadSafety_backend.Application.DTOs.Responses.Auth;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
@@ -30,6 +30,8 @@ public class RefreshTokensUseCase(
         var (plainRefreshToken, newRefreshToken) = tokenService.GenerateRefreshToken(session.UserId, session.Id);
 
         session.RotateRefreshToken(newRefreshToken);
+
+        await sessionRepository.UpdateSessionAsync(session, cancellationToken);
 
         var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
 
