@@ -1,10 +1,14 @@
+using RoadSafety_backend.Presentation;
+using RoadSafety_backend.Application;
+using RoadSafety_backend.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddApplication()
+                .AddInfrastructure(builder.Configuration)
+                .AddPresentation();
 
 var app = builder.Build();
 

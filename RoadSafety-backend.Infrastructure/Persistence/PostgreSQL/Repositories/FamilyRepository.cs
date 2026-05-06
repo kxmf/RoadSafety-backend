@@ -1,10 +1,11 @@
-﻿using System;
+using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories
 {
-    internal class FamilyRepository
+    public class FamilyRepository : IFamilyRepository
     {
     }
 }
