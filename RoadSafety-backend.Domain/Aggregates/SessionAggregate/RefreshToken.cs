@@ -9,6 +9,7 @@ public class RefreshToken
     public string TokenHash { get; init; }
 
     public UserId UserId { get; init; }
+    public SessionId SessionId { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset ExpiresAt { get; init; }
@@ -16,17 +17,35 @@ public class RefreshToken
     public bool IsUsed { get; private set; }
     public bool IsRevoked { get; private set; }
 
+    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    public bool IsActive => !IsRevoked && !IsUsed && DateTime.UtcNow < ExpiresAt;
+
     public RefreshTokenId? ReplacedByTokenId { get; private set; }
 
-    public RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset createdAt, DateTimeOffset expiresAt, bool isUsed, bool isRevoked, RefreshTokenId? replacedByTokenId)
+    private RefreshToken() { }
+
+    private RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
     {
         Id = id;
         TokenHash = tokenHash;
         UserId = userId;
+        SessionId = sessionId;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
-        IsUsed = isUsed;
-        IsRevoked = isRevoked;
+        IsUsed = false;
+        IsRevoked = false;
+    }
+
+    public static RefreshToken Create(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    {
+        return new RefreshToken(id, tokenHash, userId, sessionId, createdAt, expiresAt);
+    }
+
+    public void MarkAsUsed(RefreshTokenId replacedByTokenId)
+    {
+        IsUsed = true;
         ReplacedByTokenId = replacedByTokenId;
     }
+
+    public void Revoke() => IsRevoked = true;
 }
