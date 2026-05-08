@@ -23,6 +23,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(rt => rt.SessionId)
             .IsRequired();
 
+        builder.Property(t => t.UserId)
+            .IsRequired();
+
         builder.Property(rt => rt.CreatedAt)
             .IsRequired();
 
@@ -39,6 +42,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
             .WithOne()
             .HasForeignKey<RefreshToken>(rt => rt.ReplacedByTokenId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Ignore(t => t.IsExpired);
+        builder.Ignore(t => t.IsActive);
     }
 }
 

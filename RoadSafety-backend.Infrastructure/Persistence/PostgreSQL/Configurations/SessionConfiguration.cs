@@ -17,6 +17,9 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IsRevoked)
             .HasDefaultValue(false);
 
+        builder.Metadata.FindNavigation(nameof(Session.RefreshTokens))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasMany(s => s.RefreshTokens)
             .WithOne()
             .HasForeignKey(s => s.SessionId)
@@ -28,6 +31,8 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(s => s.UserId);
+
+        builder.Ignore(s => s.CurrentRefreshToken);
     }
 }
 
