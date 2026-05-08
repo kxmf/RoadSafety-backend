@@ -6,7 +6,7 @@ public sealed record UserProfile
     public string? LastName { get; init; }
     public string? Patronymic { get; init; }
     public DateOnly? BirthDate { get; init; }
-
+    private UserProfile() { }
     public UserProfile(string? firstName = null, string? lastName = null, string? patronymic = null, DateOnly? birthDate = null)
     {
         if (birthDate > DateOnly.FromDateTime(DateTime.Now))

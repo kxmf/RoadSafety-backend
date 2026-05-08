@@ -8,6 +8,7 @@ public sealed record PhoneNumber
 
     public string? Value { get; init; }
 
+    private PhoneNumber() { }
     public PhoneNumber(string? rawPhoneNumber)
     {
         var cleaned = Normalize(rawPhoneNumber);
@@ -38,4 +39,6 @@ public sealed record PhoneNumber
 
         return digitsOnly;
     }
+
+    public override string ToString() => Value!;
 }
