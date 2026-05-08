@@ -22,6 +22,7 @@ public class Session
         Id = id;
         UserId = userId;
         IsRevoked = false;
+        _refreshTokens.Add(refreshToken);
     }
 
     public static Session Create(SessionId id, UserId userId, RefreshToken refreshToken)
