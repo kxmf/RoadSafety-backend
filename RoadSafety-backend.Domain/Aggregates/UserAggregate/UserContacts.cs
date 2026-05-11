@@ -10,7 +10,12 @@ public sealed record UserContacts
     private UserContacts() { }
     public UserContacts(string? email = null, string? phoneNumber = null)
     {
-        PhoneNumber = new PhoneNumber(phoneNumber);
-        MailAddress = new MailAddress(email);
+        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            throw new ArgumentException("At least one of email or phone number must be provided");
+        }
+        
+        PhoneNumber = !string.IsNullOrWhiteSpace(phoneNumber) ? new PhoneNumber(phoneNumber) : null;
+        MailAddress = !string.IsNullOrEmpty(email) ? new MailAddress(email) : null;
     }
 }

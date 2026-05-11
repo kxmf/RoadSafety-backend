@@ -34,7 +34,17 @@ public class RegisterUseCase(
         }
 
         var hashedPassword = passwordService.Hash(request.Password);
-        var userContacts = new UserContacts(request.Email, request.PhoneNumber);
+
+        UserContacts userContacts;
+        try
+        {
+            userContacts = new UserContacts(request.Email, request.PhoneNumber);
+        }
+        catch (ArgumentException)
+        {
+            return Result<AuthResponse>.Failure(Error.Validation("At least one of email or phone number must be provided"));
+        }
+
         var user = User.Create(UserId.New(), hashedPassword, userContacts, request.Role);
         await userRepository.CreateUserAsync(user, cancellationToken);
 

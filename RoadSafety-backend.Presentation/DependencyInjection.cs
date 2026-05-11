@@ -5,7 +5,7 @@ namespace RoadSafety_backend.Presentation;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPresentation(this IServiceCollection services)
+    public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
 
         services.AddControllers()

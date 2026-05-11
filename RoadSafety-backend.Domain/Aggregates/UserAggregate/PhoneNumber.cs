@@ -15,7 +15,7 @@ public sealed record PhoneNumber
 
         if (!PhoneRegex.IsMatch(cleaned))
         {
-            throw new ArgumentException("Invalid phone number format. Expected E.164 (e.g. +79991234567)");
+            throw new FormatException("Invalid phone number format. Expected E.164 (e.g. +79991234567)");
         }
 
         Value = cleaned;
