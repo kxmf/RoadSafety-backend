@@ -1,4 +1,4 @@
-﻿namespace RoadSafety_backend.Application.DTOs.Requests.Auth;
+namespace RoadSafety_backend.Application.DTOs.Requests.Auth;
 
 public record RegisterRequest
 {
