@@ -4,7 +4,6 @@ using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
-using System.Diagnostics;
 
 namespace RoadSafety_backend.Application.UseCases.Auth;
 
