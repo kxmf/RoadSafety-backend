@@ -1,6 +1,4 @@
-﻿using RoadSafety_backend.Domain.Aggregates.UserAggregate;
-
-namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+﻿namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 
 public class Family
 {

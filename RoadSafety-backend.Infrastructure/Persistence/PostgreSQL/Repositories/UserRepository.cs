@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Net.Mail;
+using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
-using System.Net.Mail;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
 

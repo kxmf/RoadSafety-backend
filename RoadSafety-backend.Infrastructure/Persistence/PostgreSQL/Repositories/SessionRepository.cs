@@ -9,18 +9,18 @@ public sealed class SessionRepository(ApplicationDbContext dbContext) : ISession
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<Session> GetSessionByUserIdAsync(UserId id, CancellationToken cancellationToken)
+    public async Task<Session?> GetSessionByUserIdAsync(UserId id, CancellationToken cancellationToken)
     {
-        return (await _dbContext.Sessions
+        return await _dbContext.Sessions
             .Include(s => s.RefreshTokens)
-            .FirstOrDefaultAsync(s => s.UserId == id, cancellationToken))!;
+            .FirstOrDefaultAsync(s => s.UserId == id, cancellationToken);
     }
 
-    public async Task<Session> GetSessionByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken cancellationToken)
+    public async Task<Session?> GetSessionByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken cancellationToken)
     {
-        return (await _dbContext.Sessions
+        return await _dbContext.Sessions
             .Include(s => s.RefreshTokens)
-            .FirstOrDefaultAsync(s => s.RefreshTokens.Any(rt => rt.TokenHash == refreshTokenHash), cancellationToken))!;
+            .FirstOrDefaultAsync(s => s.RefreshTokens.Any(rt => rt.TokenHash == refreshTokenHash), cancellationToken);
     }
 
     public async Task<Session> CreateSessionAsync(Session session, CancellationToken cancellationToken)

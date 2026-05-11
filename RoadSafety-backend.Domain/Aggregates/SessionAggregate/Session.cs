@@ -1,5 +1,5 @@
-﻿using RoadSafety_backend.Domain.Aggregates.UserAggregate;
-using System.Security;
+﻿using System.Security;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 namespace RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 

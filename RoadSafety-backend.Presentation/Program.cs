@@ -1,6 +1,6 @@
-using RoadSafety_backend.Presentation;
 using RoadSafety_backend.Application;
 using RoadSafety_backend.Infrastructure;
+using RoadSafety_backend.Presentation;
 using Scalar.AspNetCore;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using Microsoft.EntityFrameworkCore;

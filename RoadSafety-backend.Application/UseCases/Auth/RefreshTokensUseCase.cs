@@ -22,6 +22,13 @@ public class RefreshTokensUseCase(
         if (session == null)
             return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
 
+        if (session.IsRevoked)
+            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Session is revoked"));
+
+        var refreshToken = session.RefreshTokens.FirstOrDefault(rt => rt.TokenHash == refreshTokenHash);
+        if (refreshToken == null || !refreshToken.IsActive)
+            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
+
         var user = await userRepository.GetUserByIdAsync(session.UserId, cancellationToken);
 
         if (user == null)
