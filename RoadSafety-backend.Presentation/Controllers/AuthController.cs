@@ -21,14 +21,17 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RegisterUser([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var result = await registerUseCase.ExecuteAsync(request, cancellationToken);
 
         if (!result.IsSuccess)
         {
             return result.Error.Type switch
             {
-                ErrorType.Conflict => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status409Conflict),
                 ErrorType.Validation => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status400BadRequest),
+                ErrorType.Conflict => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status409Conflict),
                 _ => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status500InternalServerError)
             };
         }
@@ -41,6 +44,9 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LoginUser([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var result = await loginUseCase.ExecuteAsync(request, cancellationToken);
 
         if (!result.IsSuccess)
@@ -60,6 +66,9 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshUserTokens([FromBody] RefreshTokensRequest request, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var result = await refreshTokensUseCase.ExecuteAsync(request, cancellationToken);
 
         if (!result.IsSuccess)
@@ -79,6 +88,9 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LogOutUser([FromBody] LogOutRequest request, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var result = await logOutUseCase.ExecuteAsync(request, cancellationToken);
 
         if (!result.IsSuccess)

@@ -16,15 +16,22 @@ public class RegisterUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        var existingPhoneUser = await userRepository.GetUserByPhoneAsync(request.PhoneNumber, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
+            return Result<AuthResponse>.Failure(Error.Validation("Email or phone number must be provided"));
 
-        if (existingPhoneUser != null)
-            return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
+        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+        {
+            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(request.PhoneNumber, cancellationToken);
+            if (existingPhoneUser != null)
+                return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
+        }
 
-        var existingEmailUser = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
-
-        if (existingEmailUser != null)
-            return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var existingEmailUser = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
+            if (existingEmailUser != null)
+                return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+        }
 
         var hashedPassword = passwordService.Hash(request.Password);
         var userContacts = new UserContacts(request.Email, request.PhoneNumber);
