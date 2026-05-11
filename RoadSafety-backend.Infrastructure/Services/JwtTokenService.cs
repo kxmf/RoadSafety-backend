@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Services.Settings;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace RoadSafety_backend.Infrastructure.Services;
 
@@ -20,9 +20,9 @@ public class JwtTokenService : ITokenService
         _settings = settings.Value;
     }
 
-    public (string AccessTokenHash, DateTime AccessTokenExpirationDateTime) GenerateAccessToken(User user)
+    public (string AccessTokenHash, DateTimeOffset AccessTokenExpirationDateTime) GenerateAccessToken(User user)
     {
-        var expirationTime = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
+        var expirationTime = DateTimeOffset.UtcNow.AddMinutes(_settings.ExpiryMinutes);
 
         var claims = new List<Claim>
         {
@@ -38,7 +38,7 @@ public class JwtTokenService : ITokenService
             _settings.Issuer,
             _settings.Audience,
             claims,
-            expires: expirationTime,
+            expires: expirationTime.UtcDateTime,
             signingCredentials: creds
         );
 
