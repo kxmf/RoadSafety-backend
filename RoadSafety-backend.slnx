@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="RoadSafety-backend.Application/RoadSafety-backend.Application.csproj" />
+  <Project Path="RoadSafety-backend.Domain/RoadSafety-backend.Domain.csproj" />
+  <Project Path="RoadSafety-backend.Infrastructure/RoadSafety-backend.Infrastructure.csproj" />
+  <Project Path="RoadSafety-backend.Presentation/RoadSafety-backend.Presentation.csproj" Id="a6f38df1-4ddd-4502-a5ef-987fd6810a00" />
+</Solution>
