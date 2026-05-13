@@ -13,16 +13,19 @@ public class LogOutUseCase(
 {
     public async Task<Result<LogOutResponse>> ExecuteAsync(LogOutRequest request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Result<LogOutResponse>.Failure(Error.Validation("Refresh token cannot be empty"));
+
         var tokenHash = tokenService.HashToken(request.RefreshToken);
 
         var session = await sessionRepository.GetSessionByRefreshTokenHashAsync(tokenHash, cancellationToken);
-
+        
         if (session == null)
         {
-            return Result<LogOutResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
+            return Result<LogOutResponse>.Failure(Error.Unauthorized("Invalid refresh token"));
         }
 
-        session.RevokeAll();
+        session.Revoke();
         await sessionRepository.UpdateSessionAsync(session, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

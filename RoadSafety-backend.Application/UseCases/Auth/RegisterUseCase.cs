@@ -16,10 +16,10 @@ public class RegisterUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        bool isEmail = request.Login.Contains('@');
-
         string? email = null;
         string? phoneNumber = null;
+
+        bool isEmail = request.Login.Contains('@');
 
         if (isEmail)
         {
@@ -38,27 +38,25 @@ public class RegisterUseCase(
                 return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
         }
 
-
-        UserContacts userContacts;
-        try
-        {
-            userContacts = new UserContacts(email, phoneNumber);
-        }
-        catch (FormatException exception)
-        {
-            return Result<AuthResponse>.Failure(Error.Validation(exception.Message));
-        }
+        var contactsResult = UserContacts.Create(email, phoneNumber);
+        if (contactsResult.IsFailure)
+            return Result<AuthResponse>.Failure(contactsResult.Error);
 
         var hashedPassword = passwordService.Hash(request.Password);
-        var user = User.Create(UserId.New(), hashedPassword, userContacts);
+        var userId = UserId.New();
+
+        var user = User.Create(userId, hashedPassword, contactsResult.Value);
         await userRepository.CreateUserAsync(user, cancellationToken);
 
         var sessionId = SessionId.New();
         var (plainRefreshToken, refreshToken) = tokenService.GenerateRefreshToken(user.Id, sessionId);
-        var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
-        var session = Session.Create(sessionId, user.Id, refreshToken);
-        await sessionRepository.CreateSessionAsync(session, cancellationToken);
 
+        var session = Session.Create(sessionId, user.Id, refreshToken);
+
+        await sessionRepository.CreateSessionAsync(session, cancellationToken);
+        
+        var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
+        
         var registerResponse = new AuthResponse(
             user.Id,
             accessToken,
