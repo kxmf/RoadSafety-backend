@@ -18,6 +18,10 @@ RoadSafety-backend/
 |       |   ├── FamilyMember.cs (Entity)
 |       |   ├── FamilyMemberRole.cs (Enum)
 |       |   └── IFamilyRepository.cs (Interface)   
+|       ├── InvitesAggregate/
+|       |   ├── Invite.cs (Root)
+|       |   ├── InviteId.cs (VO)
+|       |   └── IInvitesRepository.cs (Interface)
 |       ├── UserAggregate/
 |       |   ├── User.cs (Root)
 |       |   ├── UserId.cs (VO)
