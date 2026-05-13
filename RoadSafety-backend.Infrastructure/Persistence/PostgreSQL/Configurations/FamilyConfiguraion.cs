@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
 
 public class FamilyConfiguraion : IEntityTypeConfiguration<Family>
@@ -10,11 +11,34 @@ public class FamilyConfiguraion : IEntityTypeConfiguration<Family>
     {
         builder.ToTable("families");
 
-        builder.HasKey(x => x.Id);
+        builder.HasKey(f => f.Id);
+
+        builder.Metadata.FindNavigation(nameof(Family.FamilyMembers))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.OwnsMany(f => f.FamilyMembers, familyMemberBuilder =>
+        {
+            familyMemberBuilder.ToTable("family_members");
+
+            familyMemberBuilder.WithOwner().HasForeignKey("FamilyId");
+
+            familyMemberBuilder.HasKey("FamilyId", nameof(FamilyMember.UserId));
+
+            familyMemberBuilder.Property<DateTime>("joined_at")
+                .HasDefaultValueSql("now() at time zone 'utc'");
+
+            familyMemberBuilder.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(fm => fm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Property<DateTime>("created_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
     }
 }
 
 public class FamilyIdConverter : ValueConverter<FamilyId, Guid>
 {
-    public FamilyIdConverter() : base(id => id.Id, value => new FamilyId(value)) { }
+    public FamilyIdConverter() : base(id => id.Value, value => new FamilyId(value)) { }
 }

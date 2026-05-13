@@ -27,8 +27,7 @@ public class JwtTokenService : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
@@ -58,8 +57,6 @@ public class JwtTokenService : ITokenService
             RefreshTokenId.New(),
             tokenHash,
             userId,
-            sessionId,
-            DateTime.UtcNow,
             DateTime.UtcNow.AddDays(7));
 
         return (plainToken, refreshToken);

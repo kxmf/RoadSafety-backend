@@ -16,19 +16,32 @@ public class RegisterUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        var existingPhoneUser = await userRepository.GetUserByPhoneAsync(request.PhoneNumber, cancellationToken);
+        bool isEmail = request.Login.Contains('@');
 
-        if (existingPhoneUser != null)
-            return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
+        string? email = null;
+        string? phoneNumber = null;
 
-        var existingEmailUser = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
+        if (isEmail)
+        {
+            email = request.Login;
+            var existingEmailUser = await userRepository.GetUserByEmailAsync(email, cancellationToken);
 
-        if (existingEmailUser != null)
-            return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+            if (existingEmailUser != null)
+                return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+        }
+        else
+        {
+            phoneNumber = request.Login;
+            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(phoneNumber, cancellationToken);
+
+            if (existingPhoneUser != null)
+                return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
+        }
 
         var hashedPassword = passwordService.Hash(request.Password);
-        var userContacts = new UserContacts(request.Email, request.PhoneNumber);
-        var user = User.Create(UserId.New(), hashedPassword, userContacts, request.Role);
+
+        var userContacts = new UserContacts(email, phoneNumber);
+        var user = User.Create(UserId.New(), hashedPassword, userContacts);
         await userRepository.CreateUserAsync(user, cancellationToken);
 
         var sessionId = SessionId.New();

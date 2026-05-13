@@ -9,7 +9,7 @@ public class Session
 
     public UserId UserId { get; init; }
 
-    private readonly List<RefreshToken> _refreshTokens = [];
+    private readonly List<RefreshToken> _refreshTokens;
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
     public RefreshToken? CurrentRefreshToken => _refreshTokens.FirstOrDefault(t => t.IsActive);
 
@@ -22,7 +22,7 @@ public class Session
         Id = id;
         UserId = userId;
         IsRevoked = false;
-        _refreshTokens.Add(refreshToken);
+        _refreshTokens = [refreshToken];
     }
 
     public static Session Create(SessionId id, UserId userId, RefreshToken refreshToken)

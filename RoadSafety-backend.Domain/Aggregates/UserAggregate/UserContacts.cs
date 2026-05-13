@@ -10,7 +10,9 @@ public sealed record UserContacts
     private UserContacts() { }
     public UserContacts(string? email = null, string? phoneNumber = null)
     {
-        PhoneNumber = new PhoneNumber(phoneNumber);
-        MailAddress = new MailAddress(email);
+        if (phoneNumber != null)
+            PhoneNumber = new PhoneNumber(phoneNumber);
+        if (email != null)
+            MailAddress = new MailAddress(email);
     }
 }

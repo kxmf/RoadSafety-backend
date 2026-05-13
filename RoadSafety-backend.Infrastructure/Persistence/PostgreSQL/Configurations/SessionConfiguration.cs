@@ -15,15 +15,20 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.IsRevoked)
-            .HasDefaultValue(false);
+            .HasColumnName("is_revoked");
+
+        builder.Property<DateTime>("created_at")
+            .HasColumnName("created_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
         builder.Metadata.FindNavigation(nameof(Session.RefreshTokens))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(s => s.RefreshTokens)
-            .WithOne()
-            .HasForeignKey(s => s.SessionId)
-            .OnDelete(DeleteBehavior.Cascade);
+           .WithOne()
+           .HasForeignKey("session_id")
+           .IsRequired()
+           .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne<User>()
             .WithMany()

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
 
@@ -14,41 +15,49 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasKey(rt => rt.Id);
 
         builder.Property(rt => rt.TokenHash)
-            .IsRequired()
-            .HasMaxLength(256);
-
-        builder.HasIndex(rt => rt.TokenHash)
-            .IsUnique();
-
-        builder.Property(rt => rt.SessionId)
+            .HasColumnName("token_hash")
+            .HasColumnType("varchar")
             .IsRequired();
 
-        builder.Property(t => t.UserId)
-            .IsRequired();
-
-        builder.Property(rt => rt.CreatedAt)
+        builder.Property(rt => rt.UserId)
             .IsRequired();
 
         builder.Property(rt => rt.ExpiresAt)
-            .IsRequired();
+            .HasColumnName("expires_at");
 
         builder.Property(rt => rt.IsUsed)
-            .HasDefaultValue(false);
+             .HasColumnName("is_used");
 
         builder.Property(rt => rt.IsRevoked)
-            .HasDefaultValue(false);
+            .HasColumnName("is_revoked");
+
+        builder.Property(rt => rt.ReplacedByTokenId)
+            .HasConversion(
+                id => id == null ? (Guid?)null : id.Value,
+                value => value.HasValue ? new RefreshTokenId(value.Value) : null)
+            .HasColumnName("replaced_by_token_id")
+            .IsRequired(false);
+
+        builder.Property<DateTime>("created_at")
+            .HasColumnName("created_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne<RefreshToken>()
-            .WithOne()
-            .HasForeignKey<RefreshToken>(rt => rt.ReplacedByTokenId)
+            .WithMany()
+            .HasForeignKey(rt => rt.ReplacedByTokenId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Ignore(t => t.IsExpired);
-        builder.Ignore(t => t.IsActive);
+        builder.Ignore(rt => rt.IsExpired);
+        builder.Ignore(rt => rt.IsActive);
     }
 }
 
 public class RefreshTokenIdConverter : ValueConverter<RefreshTokenId, Guid>
 {
-    public RefreshTokenIdConverter() : base(id => id.Id, value => new RefreshTokenId(value)) { }
+    public RefreshTokenIdConverter() : base(id => id.Value, value => new RefreshTokenId(value)) { }
 }

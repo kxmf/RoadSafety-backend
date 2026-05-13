@@ -10,22 +10,19 @@ public class User
     public UserProfile? Profile { get; private set; }
     public UserContacts Contacts { get; private set; }
 
-    public UserRole Role { get; private set; }
-
     public FamilyId? FamilyId { get; private set; }
 
     private User() { }
 
-    private User(UserId id, string hashedPassword, UserContacts contacts, UserRole role)
+    private User(UserId id, string hashedPassword, UserContacts contacts)
     {
         Id = id;
         HashedPassword = hashedPassword;
         Contacts = contacts;
-        Role = role;
     }
 
-    public static User Create(UserId id, string hashedPassword, UserContacts contacts, UserRole role)
+    public static User Create(UserId id, string hashedPassword, UserContacts contacts)
     {
-        return new User(id, hashedPassword, contacts, role);
+        return new User(id, hashedPassword, contacts);
     }
 }

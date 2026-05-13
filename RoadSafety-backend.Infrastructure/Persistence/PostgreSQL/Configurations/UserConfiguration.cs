@@ -59,21 +59,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             contacts.HasIndex(c => c.PhoneNumber).IsUnique();
         });
 
-        builder.Property(u => u.Role)
-            .HasColumnName("role")
-            .HasConversion(
-            r => r.ToString(),
-            r => Enum.Parse<UserRole>(r))
-            .HasColumnType("citext");
-
-        builder.HasOne<Family>()
-               .WithMany()
-               .HasForeignKey(u => u.FamilyId)
-               .OnDelete(DeleteBehavior.Restrict);
+        builder.Property<DateTime>("created_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
     }
 }
 
 public class UserIdConverter : ValueConverter<UserId, Guid>
 {
-    public UserIdConverter() : base(id => id.Id, value => new UserId(value)) { }
+    public UserIdConverter() : base(id => id.Value, value => new UserId(value)) { }
 }

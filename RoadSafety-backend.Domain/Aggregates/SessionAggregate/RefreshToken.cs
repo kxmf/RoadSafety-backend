@@ -9,9 +9,7 @@ public class RefreshToken
     public string TokenHash { get; init; }
 
     public UserId UserId { get; init; }
-    public SessionId SessionId { get; init; }
 
-    public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset ExpiresAt { get; init; }
 
     public bool IsUsed { get; private set; }
@@ -24,21 +22,19 @@ public class RefreshToken
 
     private RefreshToken() { }
 
-    private RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    private RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset expiresAt)
     {
         Id = id;
         TokenHash = tokenHash;
         UserId = userId;
-        SessionId = sessionId;
-        CreatedAt = createdAt;
         ExpiresAt = expiresAt;
         IsUsed = false;
         IsRevoked = false;
     }
 
-    public static RefreshToken Create(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    public static RefreshToken Create(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset expiresAt)
     {
-        return new RefreshToken(id, tokenHash, userId, sessionId, createdAt, expiresAt);
+        return new RefreshToken(id, tokenHash, userId, expiresAt);
     }
 
     public void MarkAsUsed(RefreshTokenId replacedByTokenId)

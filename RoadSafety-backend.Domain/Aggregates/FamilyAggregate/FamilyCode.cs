@@ -1,6 +1,4 @@
-﻿using RoadSafety_backend.Domain.Aggregates.UserAggregate;
-
-namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+﻿namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 
 public class FamilyCode
 {
@@ -8,5 +6,5 @@ public class FamilyCode
 
     public FamilyId FamilyId { get; init; }
 
-    public UserRole UserRole { get; init; }
+    public FamilyMemberRole UserRole { get; init; }
 }
