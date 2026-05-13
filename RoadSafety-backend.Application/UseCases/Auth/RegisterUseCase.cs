@@ -38,9 +38,18 @@ public class RegisterUseCase(
                 return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
         }
 
-        var hashedPassword = passwordService.Hash(request.Password);
 
-        var userContacts = new UserContacts(email, phoneNumber);
+        UserContacts userContacts;
+        try
+        {
+            userContacts = new UserContacts(email, phoneNumber);
+        }
+        catch (FormatException exception)
+        {
+            return Result<AuthResponse>.Failure(Error.Validation(exception.Message));
+        }
+
+        var hashedPassword = passwordService.Hash(request.Password);
         var user = User.Create(UserId.New(), hashedPassword, userContacts);
         await userRepository.CreateUserAsync(user, cancellationToken);
 

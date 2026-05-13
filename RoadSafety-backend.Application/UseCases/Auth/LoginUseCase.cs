@@ -25,10 +25,7 @@ public class LoginUseCase(
         else
             user = await userRepository.GetUserByPhoneAsync(request.Login, cancellationToken);
 
-        if (user == null)
-            return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
-
-        if (!passwordService.Verify(request.Password, user.HashedPassword))
+        if (user == null || !passwordService.Verify(request.Password, user.HashedPassword))
             return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
 
         var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
