@@ -15,24 +15,27 @@ public class RefreshTokensUseCase(
 {
     public async Task<Result<RefreshTokensResponse>> ExecuteAsync(RefreshTokensRequest request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Result<RefreshTokensResponse>.Failure(Error.Validation("Refresh token cannot be empty"));
+
         var refreshTokenHash = tokenService.HashToken(request.RefreshToken);
 
         var session = await sessionRepository.GetSessionByRefreshTokenHashAsync(refreshTokenHash, cancellationToken);
 
         if (session == null)
-            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
+            return Result<RefreshTokensResponse>.Failure(Error.Unauthorized("Invalid refresh token"));
 
         if (session.IsRevoked)
-            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Session is revoked"));
+            return Result<RefreshTokensResponse>.Failure(Error.Unauthorized("Session is revoked"));
 
         var refreshToken = session.RefreshTokens.FirstOrDefault(rt => rt.TokenHash == refreshTokenHash);
         if (refreshToken == null || !refreshToken.IsActive)
-            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.Unauthorized, "Invalid refresh token"));
+            return Result<RefreshTokensResponse>.Failure(Error.Unauthorized("Invalid refresh token"));
 
         var user = await userRepository.GetUserByIdAsync(session.UserId, cancellationToken);
 
         if (user == null)
-            return Result<RefreshTokensResponse>.Failure(new Error(ErrorType.NotFound, "user not found"));
+            return Result<RefreshTokensResponse>.Failure(Error.NotFound("User not found"));
 
         var (plainRefreshToken, newRefreshToken) = tokenService.GenerateRefreshToken(session.UserId, session.Id);
 

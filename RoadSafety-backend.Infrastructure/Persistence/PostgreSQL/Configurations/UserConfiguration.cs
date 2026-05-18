@@ -51,7 +51,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 .HasColumnName("phone_number")
                 .HasConversion(
                     v => v.ToString(),
-                    v => new PhoneNumber(v))
+                    v => PhoneNumber.FromTrustedSource(v))
                 .HasMaxLength(40);
 
             contacts.HasIndex(c => c.MailAddress).IsUnique();

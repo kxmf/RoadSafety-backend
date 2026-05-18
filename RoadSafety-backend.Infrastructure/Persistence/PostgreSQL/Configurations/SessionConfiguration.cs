@@ -43,5 +43,5 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 
 public class SessionIdConverter : ValueConverter<SessionId, Guid>
 {
-    public SessionIdConverter() : base(id => id.Id, value => new SessionId(value)) { }
+    public SessionIdConverter() : base(id => id.Value, value => new SessionId(value)) { }
 }
