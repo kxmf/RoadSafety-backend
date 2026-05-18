@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
@@ -30,5 +31,6 @@ public class ApplicationDbContext : DbContext
         configurationBuilder.Properties<UserId>().HaveConversion<UserIdConverter>();
         configurationBuilder.Properties<SessionId>().HaveConversion<SessionIdConverter>();
         configurationBuilder.Properties<RefreshTokenId>().HaveConversion<RefreshTokenIdConverter>();
+        configurationBuilder.Properties<InviteCodeId>().HaveConversion<InviteCodeIdConverter>();
     }
 }
