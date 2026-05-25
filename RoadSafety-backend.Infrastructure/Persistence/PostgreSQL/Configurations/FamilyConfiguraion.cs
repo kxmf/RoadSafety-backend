@@ -13,10 +13,13 @@ public class FamilyConfiguraion : IEntityTypeConfiguration<Family>
 
         builder.HasKey(f => f.Id);
 
-        builder.Metadata.FindNavigation(nameof(Family.FamilyMembers))!
+        builder.Property(f => f.Name)
+            .HasColumnName("name");
+
+        builder.Metadata.FindNavigation(nameof(Family.Members))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.OwnsMany(f => f.FamilyMembers, familyMemberBuilder =>
+        builder.OwnsMany(f => f.Members, familyMemberBuilder =>
         {
             familyMemberBuilder.ToTable("family_members");
 

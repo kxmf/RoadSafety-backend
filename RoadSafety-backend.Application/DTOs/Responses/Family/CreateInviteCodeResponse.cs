@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace RoadSafety_backend.Application.DTOs.Responses.Family;
 
-namespace RoadSafety_backend.Application.DTOs.Responses.Family
+public record CreateInviteCodeResponse(string InviteCode)
 {
-    internal class CreateInviteCodeResponse
-    {
-    }
 }

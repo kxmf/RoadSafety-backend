@@ -20,7 +20,7 @@ public class InviteCode
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsActive => !IsUsed && !IsExpired;
 
-    private InviteCode() { } 
+    private InviteCode() { }
 
     private InviteCode(InviteCodeId id, InviteCodeValue value, FamilyMemberRole role, FamilyId familyId, UserId createdByUserId, DateTime expiresAt)
     {
@@ -38,5 +38,9 @@ public class InviteCode
         return new InviteCode(id, value, role, familyId, createdByUserId, expiresAt);
     }
 
-    public void Use() => IsUsed = true;
+    public void Use()
+    {
+        IsUsed = true;
+        AcceptedAt = DateTime.UtcNow;
+    }
 }

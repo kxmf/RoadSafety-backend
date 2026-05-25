@@ -1,9 +1,5 @@
 ﻿namespace RoadSafety_backend.Application.DTOs.Responses.Family;
 
-public class CreateFamilyResponse
+public record CreateFamilyResponse(Guid FamilyId, string? Name, Guid CreatedByUserId)
 {
-    public required Guid FamilyId { get; init; }
-    public required string? Name { get; init; }
-    public required Guid CreatedByUserId { get; init; }
-    public required DateTime CreatedAt { get; init; }
 }

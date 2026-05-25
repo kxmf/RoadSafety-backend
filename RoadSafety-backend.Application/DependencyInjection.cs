@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using RoadSafety_backend.Application.UseCases.Auth;
+using RoadSafety_backend.Application.UseCases.Family;
 
 namespace RoadSafety_backend.Application;
 
@@ -11,6 +12,10 @@ public static class DependencyInjection
         services.AddScoped<LogOutUseCase>();
         services.AddScoped<RefreshTokensUseCase>();
         services.AddScoped<RegisterUseCase>();
+        services.AddScoped<CreateFamilyUseCase>();
+        services.AddScoped<GetFamilyMembersUseCase>();
+        services.AddScoped<JoinFamilyByInviteCodeUseCase>();
+        services.AddScoped<CreateInviteCodeUseCase>();
 
         return services;
     }

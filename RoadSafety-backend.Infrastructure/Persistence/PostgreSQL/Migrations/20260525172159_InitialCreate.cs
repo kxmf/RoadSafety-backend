@@ -19,6 +19,8 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now() at time zone 'utc'")
                 },
                 constraints: table =>
@@ -70,6 +72,37 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                         principalTable: "users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "invite_codes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    value = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: false),
+                    role = table.Column<string>(type: "citext", nullable: false),
+                    family_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_by_user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    expires_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    accepted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    is_used = table.Column<bool>(type: "boolean", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now() at time zone 'utc'")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_invite_codes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_invite_codes_families_family_id",
+                        column: x => x.family_id,
+                        principalTable: "families",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_invite_codes_users_created_by_user_id",
+                        column: x => x.created_by_user_id,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -135,6 +168,22 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_invite_codes_created_by_user_id",
+                table: "invite_codes",
+                column: "created_by_user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_invite_codes_family_id",
+                table: "invite_codes",
+                column: "family_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_invite_codes_value",
+                table: "invite_codes",
+                column: "value",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_replaced_by_token_id",
                 table: "refresh_tokens",
                 column: "replaced_by_token_id");
@@ -172,6 +221,9 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
         {
             migrationBuilder.DropTable(
                 name: "family_members");
+
+            migrationBuilder.DropTable(
+                name: "invite_codes");
 
             migrationBuilder.DropTable(
                 name: "refresh_tokens");

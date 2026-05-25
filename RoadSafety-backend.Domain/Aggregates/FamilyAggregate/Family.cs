@@ -1,26 +1,36 @@
-﻿namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+﻿using RoadSafety_backend.Domain.Aggregates.UserAggregate;
+
+namespace RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 
 public class Family
 {
     public FamilyId Id { get; init; } = null!;
 
-    private readonly List<FamilyMember> _familyMembers = new();
+    public UserId CreatedByUserId { get; init; } = null!;
 
-    public IReadOnlyCollection<FamilyMember> FamilyMembers => _familyMembers.AsReadOnly();
+    private readonly List<FamilyMember> _members;
+
+    public string? Name { get; private set; }
+
+    public IReadOnlyCollection<FamilyMember> Members => _members.AsReadOnly();
 
     private Family() { }
 
-    private Family(FamilyId id)
+    private Family(FamilyId id, UserId createdByUserId)
     {
         Id = id;
+        CreatedByUserId = createdByUserId;
+        _members = [];
     }
-    
-    public static Family Create(FamilyId id)
+
+    public static Family Create(string? name, FamilyId id, UserId createdByUserId)
     {
         ArgumentNullException.ThrowIfNull(id);
         if (id.Value == Guid.Empty)
             throw new ArgumentException("Family ID cannot be empty.", nameof(id));
 
-        return new Family(id);
+        return new Family(id, createdByUserId);
     }
+
+    public void AddMember(FamilyMember familyMember) => _members.Add(familyMember);
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
@@ -24,10 +25,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IFamilyRepository, FamilyRepository>();
+        services.AddScoped<IInviteCodeRepository, InviteCodeRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
 
         return services;
     }

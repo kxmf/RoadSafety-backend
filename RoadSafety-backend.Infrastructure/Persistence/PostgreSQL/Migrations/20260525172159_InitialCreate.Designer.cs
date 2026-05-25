@@ -12,7 +12,7 @@ using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260513093737_InitialCreate")]
+    [Migration("20260525172159_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -31,6 +31,13 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
                     b.Property<DateTime>("created_at")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -39,6 +46,59 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("families", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate.InviteCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_used");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("role");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("value");
+
+                    b.Property<DateTime>("created_at")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now() at time zone 'utc'");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("Value")
+                        .IsUnique();
+
+                    b.ToTable("invite_codes", (string)null);
                 });
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.SessionAggregate.RefreshToken", b =>
@@ -141,7 +201,7 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", b =>
                 {
-                    b.OwnsMany("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.FamilyMember", "FamilyMembers", b1 =>
+                    b.OwnsMany("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.FamilyMember", "Members", b1 =>
                         {
                             b1.Property<Guid>("FamilyId")
                                 .HasColumnType("uuid");
@@ -173,7 +233,22 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                                 .IsRequired();
                         });
 
-                    b.Navigation("FamilyMembers");
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate.InviteCode", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", null)
+                        .WithMany()
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.SessionAggregate.RefreshToken", b =>
