@@ -8,7 +8,7 @@ using RoadSafety_backend.Domain.Common;
 namespace RoadSafety_backend.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/families")]
 [Authorize]
 public class FamilyController(
     CreateFamilyUseCase createFamilyUseCase,

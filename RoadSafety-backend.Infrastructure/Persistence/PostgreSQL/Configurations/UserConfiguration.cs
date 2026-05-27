@@ -59,6 +59,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         });
 
         builder.Property<DateTime>("created_at")
+            .HasColumnName("created_at")
             .HasDefaultValueSql("now() at time zone 'utc'");
     }
 }

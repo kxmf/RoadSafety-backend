@@ -189,6 +189,7 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.Property<DateTime>("created_at")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
                         .HasDefaultValueSql("now() at time zone 'utc'");
 
                     b.HasKey("Id");
