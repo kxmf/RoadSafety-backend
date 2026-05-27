@@ -10,7 +10,7 @@ public class Family
 
     private readonly List<FamilyMember> _members;
 
-    public string? Name { get; private set; }
+    public string? Name { get; set; }
 
     public IReadOnlyCollection<FamilyMember> Members => _members.AsReadOnly();
 

@@ -22,12 +22,13 @@ public class CreateFamilyUseCase(
         var family = Domain.Aggregates.FamilyAggregate.Family.Create(request.Name, new FamilyId(Guid.NewGuid()), userAccessor.UserId);
         var user = await userRepository.GetUserByIdAsync(userAccessor.UserId, cancellationToken);
         var familyMember = FamilyMember.Create(userAccessor.UserId, FamilyMemberRole.Parent);
+        family.Name = request.Name;
         family.AddMember(familyMember);
         await familyRepository.CreateFamilyAsync(family, cancellationToken);
 
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return Result<CreateFamilyResponse>.Success(new CreateFamilyResponse(family.Id, family.Name, family.CreatedByUserId));
+        return Result<CreateFamilyResponse>.Success(new CreateFamilyResponse(family.Id, family.CreatedByUserId));
     }
 }
 
