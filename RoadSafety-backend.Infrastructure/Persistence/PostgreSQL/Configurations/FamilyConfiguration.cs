@@ -5,13 +5,16 @@ using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
 
-public class FamilyConfiguraion : IEntityTypeConfiguration<Family>
+public class FamilyConfiguration : IEntityTypeConfiguration<Family>
 {
     public void Configure(EntityTypeBuilder<Family> builder)
     {
         builder.ToTable("families");
 
         builder.HasKey(f => f.Id);
+
+        builder.Property(f => f.CreatedByUserId)
+            .HasColumnName("created_by_user_id");
 
         builder.Property(f => f.Name)
             .HasColumnName("name");

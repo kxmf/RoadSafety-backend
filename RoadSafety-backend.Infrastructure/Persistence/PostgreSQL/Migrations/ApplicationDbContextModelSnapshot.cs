@@ -29,7 +29,8 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
 
                     b.Property<string>("Name")
                         .HasColumnType("text")
