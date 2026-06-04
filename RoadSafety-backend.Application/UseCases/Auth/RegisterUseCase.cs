@@ -16,44 +16,47 @@ public class RegisterUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-            return Result<AuthResponse>.Failure(Error.Validation("Email or phone number must be provided"));
+        string? email = null;
+        string? phoneNumber = null;
 
-        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+        bool isEmail = request.Login.Contains('@');
+
+        if (isEmail)
         {
-            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(request.PhoneNumber, cancellationToken);
+            email = request.Login;
+            var existingEmailUser = await userRepository.GetUserByEmailAsync(email, cancellationToken);
+
+            if (existingEmailUser != null)
+                return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+        }
+        else
+        {
+            phoneNumber = request.Login;
+            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(phoneNumber, cancellationToken);
+
             if (existingPhoneUser != null)
                 return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Email))
-        {
-            var existingEmailUser = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
-            if (existingEmailUser != null)
-                return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
-        }
+        var contactsResult = UserContacts.Create(email, phoneNumber);
+        if (contactsResult.IsFailure)
+            return Result<AuthResponse>.Failure(contactsResult.Error);
 
         var hashedPassword = passwordService.Hash(request.Password);
+        var userId = UserId.New();
 
-        UserContacts userContacts;
-        try
-        {
-            userContacts = new UserContacts(request.Email, request.PhoneNumber);
-        }
-        catch (ArgumentException)
-        {
-            return Result<AuthResponse>.Failure(Error.Validation("At least one of email or phone number must be provided"));
-        }
-
-        var user = User.Create(UserId.New(), hashedPassword, userContacts, request.Role);
+        var user = User.Create(userId, hashedPassword, contactsResult.Value);
         await userRepository.CreateUserAsync(user, cancellationToken);
 
         var sessionId = SessionId.New();
         var (plainRefreshToken, refreshToken) = tokenService.GenerateRefreshToken(user.Id, sessionId);
-        var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
-        var session = Session.Create(sessionId, user.Id, refreshToken);
-        await sessionRepository.CreateSessionAsync(session, cancellationToken);
 
+        var session = Session.Create(sessionId, user.Id, refreshToken);
+
+        await sessionRepository.CreateSessionAsync(session, cancellationToken);
+        
+        var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
+        
         var registerResponse = new AuthResponse(
             user.Id,
             accessToken,

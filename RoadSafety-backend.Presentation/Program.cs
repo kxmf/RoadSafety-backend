@@ -1,9 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Application;
 using RoadSafety_backend.Infrastructure;
+using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Presentation;
 using Scalar.AspNetCore;
-using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +17,10 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        await dbContext.Database.MigrateAsync();
-    }
+    await dbContext.Database.MigrateAsync();
 }
 
 // Configure the HTTP request pipeline.

@@ -11,24 +11,18 @@ using RoadSafety_backend.Infrastructure.Services.Settings;
 
 namespace RoadSafety_backend.Infrastructure.Services;
 
-public class JwtTokenService : ITokenService
+public class JwtTokenService(IOptions<JwtSettings> settings) : ITokenService
 {
-    private readonly JwtSettings _settings;
+    private readonly JwtSettings _settings = settings.Value;
 
-    public JwtTokenService(IOptions<JwtSettings> settings)
-    {
-        _settings = settings.Value;
-    }
-
-    public (string AccessTokenHash, DateTimeOffset AccessTokenExpirationDateTime) GenerateAccessToken(User user)
+    public (string AccessToken, DateTimeOffset AccessTokenExpirationDateTime) GenerateAccessToken(User user)
     {
         var expirationTime = DateTimeOffset.UtcNow.AddMinutes(_settings.ExpiryMinutes);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
@@ -58,8 +52,6 @@ public class JwtTokenService : ITokenService
             RefreshTokenId.New(),
             tokenHash,
             userId,
-            sessionId,
-            DateTime.UtcNow,
             DateTime.UtcNow.AddDays(7));
 
         return (plainToken, refreshToken);

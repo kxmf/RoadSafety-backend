@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
@@ -52,28 +51,20 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 .HasColumnName("phone_number")
                 .HasConversion(
                     v => v.ToString(),
-                    v => new PhoneNumber(v))
+                    v => PhoneNumber.FromTrustedSource(v))
                 .HasMaxLength(40);
 
             contacts.HasIndex(c => c.MailAddress).IsUnique();
             contacts.HasIndex(c => c.PhoneNumber).IsUnique();
         });
 
-        builder.Property(u => u.Role)
-            .HasColumnName("role")
-            .HasConversion(
-            r => r.ToString(),
-            r => Enum.Parse<UserRole>(r))
-            .HasColumnType("citext");
-
-        builder.HasOne<Family>()
-               .WithMany()
-               .HasForeignKey(u => u.FamilyId)
-               .OnDelete(DeleteBehavior.Restrict);
+        builder.Property<DateTime>("created_at")
+            .HasColumnName("created_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
     }
 }
 
 public class UserIdConverter : ValueConverter<UserId, Guid>
 {
-    public UserIdConverter() : base(id => id.Id, value => new UserId(value)) { }
+    public UserIdConverter() : base(id => id.Value, value => new UserId(value)) { }
 }

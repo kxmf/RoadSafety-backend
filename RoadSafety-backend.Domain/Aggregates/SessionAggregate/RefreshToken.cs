@@ -4,14 +4,12 @@ namespace RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 
 public class RefreshToken
 {
-    public RefreshTokenId Id { get; init; }
+    public RefreshTokenId Id { get; init; } = null!;
 
-    public string TokenHash { get; init; }
+    public string TokenHash { get; init; } = null!;
 
-    public UserId UserId { get; init; }
-    public SessionId SessionId { get; init; }
+    public UserId UserId { get; init; } = null!;
 
-    public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset ExpiresAt { get; init; }
 
     public bool IsUsed { get; private set; }
@@ -24,25 +22,31 @@ public class RefreshToken
 
     private RefreshToken() { }
 
-    private RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    private RefreshToken(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset expiresAt)
     {
         Id = id;
         TokenHash = tokenHash;
         UserId = userId;
-        SessionId = sessionId;
-        CreatedAt = createdAt;
         ExpiresAt = expiresAt;
         IsUsed = false;
         IsRevoked = false;
     }
-
-    public static RefreshToken Create(RefreshTokenId id, string tokenHash, UserId userId, SessionId sessionId, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    
+    public static RefreshToken Create(RefreshTokenId id, string tokenHash, UserId userId, DateTimeOffset expiresAt)
     {
-        return new RefreshToken(id, tokenHash, userId, sessionId, createdAt, expiresAt);
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(userId);
+        if (string.IsNullOrWhiteSpace(tokenHash))
+            throw new ArgumentException("Token hash cannot be empty.", nameof(tokenHash));
+        if (expiresAt <= DateTimeOffset.UtcNow)
+            throw new ArgumentException("Refresh token expiration must be in the future.", nameof(expiresAt));
+
+        return new RefreshToken(id, tokenHash, userId, expiresAt);
     }
 
     public void MarkAsUsed(RefreshTokenId replacedByTokenId)
     {
+        ArgumentNullException.ThrowIfNull(replacedByTokenId);
         IsUsed = true;
         ReplacedByTokenId = replacedByTokenId;
     }

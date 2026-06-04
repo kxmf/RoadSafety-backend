@@ -17,8 +17,12 @@ RoadSafety-backend/
 |       |   ├── FamilyId.cs (VO)
 |       |   ├── FamilyMember.cs (Entity)
 |       |   ├── FamilyMemberRole.cs (Enum)
-|       |   ├── FamilyCode.cs (VO)
 |       |   └── IFamilyRepository.cs (Interface)   
+|       ├── InviteСodeAggregate/
+|       |   ├── InviteCode.cs (Root)
+|       |   ├── InviteCodeId.cs (VO)
+|       |   ├── InviteCodeValue.cs (VO)
+|       |   └── IInvitesRepository.cs (Interface)
 |       ├── UserAggregate/
 |       |   ├── User.cs (Root)
 |       |   ├── UserId.cs (VO)
@@ -45,6 +49,9 @@ RoadSafety-backend/
 |   |   |   |   ├── UpdatePhoneNumberRequest.cs
 |   |   |   |   └── UpdateProfileRequest.cs
 |   |   |   └── Family/
+|   |   |       ├── FamilyCreateRequest.cs
+|   |   |       ├── InviteCreateRequest.cs
+|   |   |       └── FamilyJoinRequest.cs
 |   |   └── Responses/
 |   |       ├── Auth/
 |   |       |   ├── RegisterResponse.cs
@@ -56,6 +63,10 @@ RoadSafety-backend/
 |   |       |   ├── UpdatePhoneNumberResponse.cs
 |   |       |   └── UpdateProfileResponse.cs
 |   |       └── Family/
+|   |           ├── FamilyResponse.cs
+|   |           ├── FamilyDetailsResponse.cs
+|   |           ├── FamilyMemberResponse.cs
+|   |           └── InviteCodeResponse.cs
 |   ├── UseCases/
 |   |   ├── Auth/
 |   |   |   ├── RegisterUseCase.cs
@@ -68,6 +79,11 @@ RoadSafety-backend/
 |   |   |   ├── UpdatePhoneNumberUseCase.cs
 |   |   |   └── UpdateProfileUseCase.cs
 |   |   └── Family/
+|   |       ├── CreateFamilyUseCase.cs
+|   |       ├── GetFamilyUseCase.cs
+|   |       ├── ListFamilyMembersUseCase.cs
+|   |       ├── CreateInviteCodeUseCase.cs
+|   |       └── JoinFamilyByInviteCodeUseCase.cs
 |   └── Interfaces/
 |       ├── ITokenService.cs
 |       ├── IUnitOfWork.cs
@@ -80,14 +96,16 @@ RoadSafety-backend/
 |       |   |   ├── RefreshTokenConfiguration.cs
 |       |   |   ├── FamilyConfiguration.cs
 |       |   |   ├── FamilyMemberConfiguration.cs
-|       |   |   └── UserConfiguration.cs
+|       |   |   ├── UserConfiguration.cs
+|       |   |   └── InviteCodeConfiguration.cs
 |       |   ├── Context/
 |       |   |   └── ApplicationDbContext.cs
 |       |   ├── Repositories/
 |       |   |   ├── UnifOfWork.cs
 |       |   |   ├── SessionRepository.cs
 |       |   |   ├── UserRepository.cs
-|       |   |   └── FamilyRepository.cs
+|       |   |   ├── FamilyRepository.cs
+|       |   |   └── InviteCodeRepository.cs
 |       |   └── Migrations/
 |       └── Services/
 |           ├── Settings/

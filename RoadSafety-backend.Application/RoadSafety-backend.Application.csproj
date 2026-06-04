@@ -8,12 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RoadSafety-backend.Domain\RoadSafety-backend.Domain.csproj" />
+    <Compile Remove="UseCases\User\**" />
+    <EmbeddedResource Remove="UseCases\User\**" />
+    <None Remove="UseCases\User\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="UseCases\User\" />
-    <Folder Include="UseCases\Family\" />
+    <ProjectReference Include="..\RoadSafety-backend.Domain\RoadSafety-backend.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

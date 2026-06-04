@@ -16,23 +16,22 @@ public class LoginUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        User? user = null;
+        User? user;
 
-        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-            user = await userRepository.GetUserByPhoneAsync(request.PhoneNumber, cancellationToken);
+        bool isEmail = request.Login.Contains('@');
 
-        if (user == null && !string.IsNullOrWhiteSpace(request.Email))
-            user = await userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
+        if (isEmail)
+            user = await userRepository.GetUserByEmailAsync(request.Login, cancellationToken);
+        else
+            user = await userRepository.GetUserByPhoneAsync(request.Login, cancellationToken);
 
-        if (user == null)
-            return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
-
-        if (!passwordService.Verify(request.Password, user.HashedPassword))
+        if (user == null || !passwordService.Verify(request.Password, user.HashedPassword))
             return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
 
         var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
         var sessionId = SessionId.New();
         var (plainRefreshToken, refreshToken) = tokenService.GenerateRefreshToken(user.Id, sessionId);
+
         var session = Session.Create(sessionId, user.Id, refreshToken);
         await sessionRepository.CreateSessionAsync(session, cancellationToken);
 

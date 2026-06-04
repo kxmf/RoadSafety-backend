@@ -5,7 +5,7 @@ namespace RoadSafety_backend.Application.Interfaces;
 
 public interface ITokenService
 {
-    public (string AccessTokenHash, DateTimeOffset AccessTokenExpirationDateTime) GenerateAccessToken(User user);
+    public (string AccessToken, DateTimeOffset AccessTokenExpirationDateTime) GenerateAccessToken(User user);
     public (string PlainRefreshToken, RefreshToken RefreshToken) GenerateRefreshToken(UserId userId, SessionId sessionId);
     public string HashToken(string plainToken);
 }

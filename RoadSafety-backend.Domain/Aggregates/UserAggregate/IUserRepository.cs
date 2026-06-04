@@ -11,7 +11,5 @@ public interface IUserRepository
 
     Task<User> CreateUserAsync(User user, CancellationToken cancellationToken);
 
-    Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken);
-
     Task<bool> DeleteUserByIdAsync(UserId id, CancellationToken cancellationToken);
 }
