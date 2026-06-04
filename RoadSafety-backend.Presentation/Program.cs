@@ -1,9 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Application;
 using RoadSafety_backend.Infrastructure;
+using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Presentation;
 using Scalar.AspNetCore;
-using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 

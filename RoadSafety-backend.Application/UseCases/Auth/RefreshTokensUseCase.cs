@@ -41,8 +41,6 @@ public class RefreshTokensUseCase(
 
         session.RotateRefreshToken(newRefreshToken);
 
-        await sessionRepository.UpdateSessionAsync(session, cancellationToken);
-
         var (accessToken, accessTokenExpirationDateTime) = tokenService.GenerateAccessToken(user);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

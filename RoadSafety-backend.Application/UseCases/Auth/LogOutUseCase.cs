@@ -26,7 +26,6 @@ public class LogOutUseCase(
         }
 
         session.Revoke();
-        await sessionRepository.UpdateSessionAsync(session, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

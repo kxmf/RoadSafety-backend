@@ -1,9 +1,9 @@
+using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.IdentityModel.Tokens;
 using RoadSafety_backend.Infrastructure.Services.Settings;
-using System.Text;
-using System.Text.Json.Serialization;
 
 namespace RoadSafety_backend.Presentation;
 

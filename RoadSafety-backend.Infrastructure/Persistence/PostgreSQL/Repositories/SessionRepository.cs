@@ -29,11 +29,4 @@ public sealed class SessionRepository(ApplicationDbContext dbContext) : ISession
 
         return session;
     }
-
-    public Task<Session> UpdateSessionAsync(Session session, CancellationToken cancellationToken)
-    {
-        _dbContext.Sessions.Update(session);
-
-        return Task.FromResult(session);
-    }
 }

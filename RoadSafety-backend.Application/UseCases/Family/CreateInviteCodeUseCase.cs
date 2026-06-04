@@ -1,18 +1,14 @@
-﻿using System;
-using System.Linq;
-using RoadSafety_backend.Application.DTOs.Requests.Family;
+﻿using RoadSafety_backend.Application.DTOs.Requests.Family;
 using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
-using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Family;
 
 public class CreateInviteCodeUseCase(
     IFamilyRepository familyRepository,
-    IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IInviteCodeRepository inviteCodeRepository,
     ICurrentUserAccessor userAccessor)
@@ -24,18 +20,9 @@ public class CreateInviteCodeUseCase(
         if (userId == null)
             return Result<CreateInviteCodeResponse>.Failure(Error.Unauthorized("User must be authenticated to create an invite code."));
 
-        var user = await userRepository.GetUserByIdAsync(userId, cancellationToken);
-
-        if (user == null)
-            return Result<CreateInviteCodeResponse>.Failure(Error.NotFound("User not found."));
-
-        var familyId = user.FamilyId;
-        if (familyId == null)
-            return Result<CreateInviteCodeResponse>.Failure(Error.Validation("User must belong to a family to create an invite code."));
-
-        var family = await familyRepository.GetFamilyByIdAsync(familyId, cancellationToken);
+        var family = await familyRepository.GetFamilyByMemberUserIdAsync(userId, cancellationToken);
         if (family == null)
-            return Result<CreateInviteCodeResponse>.Failure(Error.NotFound("Family not found."));
+            return Result<CreateInviteCodeResponse>.Failure(Error.Validation("User must belong to a family to create an invite code."));
 
         var familyMember = family.Members.FirstOrDefault(m => m.UserId == userId);
 
@@ -54,7 +41,7 @@ public class CreateInviteCodeUseCase(
         var inviteCodeId = InviteCodeId.New();
         var InviteCodeExpiresAt = DateTime.UtcNow.AddDays(7);
 
-        var inviteCode = InviteCode.Create(inviteCodeId, inviteCodeValue, requestedRole, familyId, userId, InviteCodeExpiresAt);
+        var inviteCode = InviteCode.Create(inviteCodeId, inviteCodeValue, requestedRole, family.Id, userId, InviteCodeExpiresAt);
 
         await inviteCodeRepository.CreateInviteCodeAsync(inviteCode, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

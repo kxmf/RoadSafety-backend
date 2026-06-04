@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 
 namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
@@ -11,8 +12,13 @@ public sealed class FamilyRepository(ApplicationDbContext dbContext) : IFamilyRe
     public async Task<Family?> GetFamilyByIdAsync(FamilyId id, CancellationToken cancellationToken)
     {
         return await _dbContext.Families
-            .AsNoTracking()
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+    }
+
+    public async Task<Family?> GetFamilyByMemberUserIdAsync(UserId userId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Families
+            .FirstOrDefaultAsync(f => f.Members.Any(m => m.UserId == userId), cancellationToken);
     }
 
     public async Task<Family> CreateFamilyAsync(Family family, CancellationToken cancellationToken)
@@ -20,13 +26,6 @@ public sealed class FamilyRepository(ApplicationDbContext dbContext) : IFamilyRe
         await _dbContext.Families.AddAsync(family, cancellationToken);
 
         return family;
-    }
-
-    public async Task<Family> UpdateFamilyAsync(Family family, CancellationToken cancellationToken)
-    {
-        _dbContext.Families.Update(family);
-
-        return await Task.FromResult(family);
     }
 
     public async Task<Family> DeleteFamilyAsync(Family family, CancellationToken cancellationToken)

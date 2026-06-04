@@ -3,7 +3,6 @@ using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
-using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Family;
@@ -11,7 +10,6 @@ namespace RoadSafety_backend.Application.UseCases.Family;
 public class JoinFamilyByInviteCodeUseCase(
     IInviteCodeRepository inviteCodeRepository,
     IFamilyRepository familyRepository,
-    IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     ICurrentUserAccessor userAccessor)
 {
@@ -21,11 +19,8 @@ public class JoinFamilyByInviteCodeUseCase(
         if (userId == null)
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Unauthorized("User must be authenticated to join a family."));
 
-        var user = await userRepository.GetUserByIdAsync(userId, cancellationToken);
-        if (user == null)
-            return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.NotFound("User not found."));
-
-        if (user.FamilyId != null)
+        var existingFamily = await familyRepository.GetFamilyByMemberUserIdAsync(userId, cancellationToken);
+        if (existingFamily != null)
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Validation("User already belongs to a family."));
 
         if (string.IsNullOrWhiteSpace(request.InviteCode))
@@ -52,10 +47,6 @@ public class JoinFamilyByInviteCodeUseCase(
         family.AddMember(newMember);
 
         inviteCode.Use();
-
-        await familyRepository.UpdateFamilyAsync(family, cancellationToken);
-        await inviteCodeRepository.UpdateInviteCodeAsync(inviteCode, cancellationToken);
-        await userRepository.UpdateUserAsync(user, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace RoadSafety_backend.Infrastructure.Services;
 

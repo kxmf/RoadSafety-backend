@@ -8,7 +8,7 @@ public class Family
 
     public UserId CreatedByUserId { get; init; } = null!;
 
-    private readonly List<FamilyMember> _members;
+    private readonly List<FamilyMember> _members = [];
 
     public string? Name { get; set; }
 
@@ -20,7 +20,6 @@ public class Family
     {
         Id = id;
         CreatedByUserId = createdByUserId;
-        _members = [];
     }
 
     public static Family Create(string? name, FamilyId id, UserId createdByUserId)
@@ -29,7 +28,10 @@ public class Family
         if (id.Value == Guid.Empty)
             throw new ArgumentException("Family ID cannot be empty.", nameof(id));
 
-        return new Family(id, createdByUserId);
+        return new Family(id, createdByUserId)
+        {
+            Name = name
+        };
     }
 
     public void AddMember(FamilyMember familyMember) => _members.Add(familyMember);

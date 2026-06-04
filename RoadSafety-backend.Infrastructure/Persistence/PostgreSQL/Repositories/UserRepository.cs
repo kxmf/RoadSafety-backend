@@ -48,14 +48,12 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
     public async Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
     {
         return await _dbContext.Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Contacts.MailAddress == new MailAddress(email), cancellationToken);
     }
 
     public async Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken)
     {
         return await _dbContext.Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
@@ -67,22 +65,6 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
 
         var normalized = phoneResult.Value.Value;
         return await _dbContext.Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Contacts.PhoneNumber!.Value == normalized, cancellationToken);
-    }
-
-    public async Task<User> UpdateUserAsync(User newUser, CancellationToken cancellationToken)
-    {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == newUser.Id, cancellationToken);
-
-
-        if (user is null)
-        {
-            // TODO: добавить какой-то exception
-        }
-        else
-            user = newUser;
-
-        return user;
     }
 }

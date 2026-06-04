@@ -1,6 +1,4 @@
-﻿using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
-
-namespace RoadSafety_backend.Domain.Aggregates.UserAggregate;
+﻿namespace RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 public class User
 {
@@ -9,8 +7,6 @@ public class User
     public string HashedPassword { get; private set; } = null!;
     public UserProfile? Profile { get; private set; }
     public UserContacts Contacts { get; private set; } = null!;
-
-    public FamilyId? FamilyId { get; private set; }
 
     private User() { }
 
@@ -39,14 +35,5 @@ public class User
     {
         ArgumentNullException.ThrowIfNull(profile);
         Profile = profile;
-    }
-
-    public void JoinFamily(FamilyId familyId)
-    {
-        ArgumentNullException.ThrowIfNull(familyId);
-        if (FamilyId is not null && FamilyId != familyId)
-            throw new InvalidOperationException("User already belongs to another family.");
-
-        FamilyId = familyId;
     }
 }

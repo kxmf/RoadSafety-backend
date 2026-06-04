@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<JoinFamilyByInviteCodeUseCase>();
         services.AddScoped<CreateInviteCodeUseCase>();
         services.AddScoped<GetUserByContactUseCase>();
+        services.AddScoped<GetCurrentUserUseCase>();
 
         return services;
     }
