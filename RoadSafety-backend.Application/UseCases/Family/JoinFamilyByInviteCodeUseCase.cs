@@ -3,6 +3,7 @@ using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Family;
@@ -16,7 +17,7 @@ public class JoinFamilyByInviteCodeUseCase(
     public async Task<Result<JoinFamilyByInviteCodeResponse>> ExecuteAsync(JoinFamilyByInviteCodeRequest request, CancellationToken cancellationToken)
     {
         var userId = userAccessor.UserId;
-        if (userId == null)
+        if (!userAccessor.IsAuthenticated || userId is null || userId == UserId.Empty)
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Unauthorized("User must be authenticated to join a family."));
 
         var existingFamily = await familyRepository.GetFamilyByMemberUserIdAsync(userId, cancellationToken);

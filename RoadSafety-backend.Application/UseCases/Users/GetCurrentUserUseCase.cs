@@ -13,7 +13,7 @@ public class GetCurrentUserUseCase(
 {
     public async Task<Result<UserResponse>> ExecuteAsync(CancellationToken cancellationToken)
     {
-        if (!currentUserAccessor.IsAuthenticated || currentUserAccessor.UserId is null)
+        if (!currentUserAccessor.IsAuthenticated || currentUserAccessor.UserId is null || currentUserAccessor.UserId == UserId.Empty)
             return Result<UserResponse>.Failure(Error.Unauthorized("User is not authenticated"));
 
         var user = await userRepository.GetUserByIdAsync(currentUserAccessor.UserId, cancellationToken);

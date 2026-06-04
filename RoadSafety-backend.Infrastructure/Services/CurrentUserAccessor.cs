@@ -12,7 +12,7 @@ public class CurrentUserAccessor(IHttpContextAccessor httpContextAccessor) : ICu
 
     private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-    public UserId UserId
+    public UserId? UserId
     {
         get
         {
@@ -20,9 +20,9 @@ public class CurrentUserAccessor(IHttpContextAccessor httpContextAccessor) : ICu
                            ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrWhiteSpace(idString))
-                return UserId.Empty;
+                return null;
 
-            return Guid.TryParse(idString, out var guid) ? new UserId(guid) : UserId.Empty;
+            return Guid.TryParse(idString, out var guid) && guid != Guid.Empty ? new UserId(guid) : null;
         }
     }
 

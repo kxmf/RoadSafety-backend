@@ -2,6 +2,7 @@
 using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Family;
@@ -13,7 +14,7 @@ public class GetFamilyMembersUseCase(
 {
     public async Task<Result<GetFamilyMembersResponse>> ExecuteAsync(GetFamilyMembersRequest request, CancellationToken cancellationToken)
     {
-        if (!userAccessor.IsAuthenticated || userAccessor.UserId is null)
+        if (!userAccessor.IsAuthenticated || userAccessor.UserId is null || userAccessor.UserId == UserId.Empty)
             return Result<GetFamilyMembersResponse>.Failure(Error.Unauthorized("User not authenticated."));
 
         var familyId = new FamilyId(request.FamilyId);

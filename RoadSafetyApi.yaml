@@ -310,7 +310,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
         "401":
-          description: Unauthorized
+          description: Unauthorized or insufficient permissions
           content:
             application/json:
               schema:
@@ -528,9 +528,6 @@ components:
         familyId:
           type: string
           format: uuid
-        name:
-          type: string
-          nullable: true
         createdByUserId:
           type: string
           format: uuid
@@ -565,6 +562,9 @@ components:
       properties:
         inviteCodeRole:
           type: string
+          enum:
+            - Parent
+            - Child
           description: Роль, для которой создаётся код (Parent или Child).
 
     CreateInviteCodeResponse:

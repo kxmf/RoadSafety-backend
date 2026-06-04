@@ -3,6 +3,7 @@ using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
+using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Family;
@@ -17,7 +18,7 @@ public class CreateInviteCodeUseCase(
     {
         var userId = userAccessor.UserId;
 
-        if (userId == null)
+        if (!userAccessor.IsAuthenticated || userId is null || userId == UserId.Empty)
             return Result<CreateInviteCodeResponse>.Failure(Error.Unauthorized("User must be authenticated to create an invite code."));
 
         var family = await familyRepository.GetFamilyByMemberUserIdAsync(userId, cancellationToken);
@@ -32,9 +33,9 @@ public class CreateInviteCodeUseCase(
         if (!Enum.TryParse<FamilyMemberRole>(request.InviteCodeRole, true, out var requestedRole))
             return Result<CreateInviteCodeResponse>.Failure(Error.Validation("Invalid invite code role."));
 
-        if (familyMember.Role != requestedRole && familyMember.Role != FamilyMemberRole.Parent)
+        if (familyMember.Role != FamilyMemberRole.Parent)
         {
-            return Result<CreateInviteCodeResponse>.Failure(Error.Unauthorized("Insufficient permissions to create invite code for the requested role."));
+            return Result<CreateInviteCodeResponse>.Failure(Error.Unauthorized("Only a parent can create invite codes."));
         }
 
         var inviteCodeValue = InviteCodeValue.Generate();
