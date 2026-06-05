@@ -7,7 +7,7 @@ using RoadSafety_backend.Presentation.Extensions;
 namespace RoadSafety_backend.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController(
     LoginUseCase loginUseCase,
     LogOutUseCase logOutUseCase,

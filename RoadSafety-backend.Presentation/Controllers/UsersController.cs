@@ -7,7 +7,7 @@ using RoadSafety_backend.Presentation.Extensions;
 namespace RoadSafety_backend.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 [Authorize]
 public class UsersController(
     GetUserByContactUseCase getUserByContactUseCase,
