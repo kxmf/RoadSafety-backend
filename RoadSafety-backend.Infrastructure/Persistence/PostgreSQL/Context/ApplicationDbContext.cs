@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
+using RoadSafety_backend.Domain.Aggregates.MapAggregate;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Configurations;
@@ -13,6 +14,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Family> Families { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<InviteCode> InviteCodes { get; set; }
+    public DbSet<MapArea> MapAreas { get; set; }
+    public DbSet<UserMapArea> UserMapAreas { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -33,5 +36,7 @@ public class ApplicationDbContext : DbContext
         configurationBuilder.Properties<SessionId>().HaveConversion<SessionIdConverter>();
         configurationBuilder.Properties<RefreshTokenId>().HaveConversion<RefreshTokenIdConverter>();
         configurationBuilder.Properties<InviteCodeId>().HaveConversion<InviteCodeIdConverter>();
+        configurationBuilder.Properties<MapAreaId>().HaveConversion<MapAreaIdConverter>();
+        configurationBuilder.Properties<UserMapAreaId>().HaveConversion<UserMapAreaIdConverter>();
     }
 }
