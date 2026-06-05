@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using RoadSafety_backend.Application.UseCases.Auth;
 using RoadSafety_backend.Application.UseCases.Family;
+using RoadSafety_backend.Application.UseCases.Maps;
 using RoadSafety_backend.Application.UseCases.Users;
 
 namespace RoadSafety_backend.Application;
@@ -19,6 +20,9 @@ public static class DependencyInjection
         services.AddScoped<CreateInviteCodeUseCase>();
         services.AddScoped<GetUserByContactUseCase>();
         services.AddScoped<GetCurrentUserUseCase>();
+        services.AddScoped<GetMapAreasUseCase>();
+        services.AddScoped<GetUserMapAreasUseCase>();
+        services.AddScoped<CreateUserMapAreaUseCase>();
 
         return services;
     }
