@@ -18,7 +18,7 @@ internal sealed class OverpassMapDataClient(
         CancellationToken cancellationToken)
     {
         var query = BuildQuery(city);
-        using var content = new StringContent(query);
+        using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
 
         var response = await httpClient.PostAsync(_settings.OverpassUrl, content, cancellationToken);
         response.EnsureSuccessStatusCode();
