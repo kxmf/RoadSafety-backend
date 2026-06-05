@@ -27,9 +27,15 @@ public class JoinFamilyByInviteCodeUseCase(
         if (string.IsNullOrWhiteSpace(request.InviteCode))
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Validation("Invite code is required."));
 
+        if (!Enum.TryParse<FamilyMemberRole>(request.UserRole, true, out var requestedRole))
+            return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Validation("Invalid user role."));
+
         var inviteCode = await inviteCodeRepository.GetInviteCodeByValueAsync(request.InviteCode.Trim(), cancellationToken);
         if (inviteCode == null)
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.NotFound("Invite code not found."));
+
+        if (inviteCode.Role != requestedRole)
+            return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Validation("User role does not match invite code role."));
 
         if (inviteCode.ExpiresAt < DateTime.UtcNow)
             return Result<JoinFamilyByInviteCodeResponse>.Failure(Error.Validation("Invite code has expired."));
