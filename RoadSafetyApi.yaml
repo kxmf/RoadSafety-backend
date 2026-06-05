@@ -58,7 +58,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "409":
           description: Email or phone already used
           content:
@@ -87,6 +87,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Invalid credentials
           content:
@@ -114,6 +120,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RefreshTokensResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Refresh token invalid or expired
           content:
@@ -138,6 +150,12 @@ paths:
       responses:
         "204":
           description: Logged out
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Refresh token invalid or expired
           content:
@@ -178,7 +196,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -241,6 +259,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateFamilyResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -310,7 +334,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized or insufficient permissions
           content:
@@ -350,7 +374,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -401,7 +425,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -473,7 +497,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -515,7 +539,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProblemDetails"
+                $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
           content:
@@ -599,7 +623,7 @@ components:
   schemas:
     ProblemDetails:
       type: object
-      description: RFC 7807 problem details (ASP.NET Core output)
+      description: RFC 9457 problem details (ASP.NET Core output)
       properties:
         type:
           type: string
@@ -616,6 +640,30 @@ components:
         instance:
           type: string
           nullable: true
+        traceId:
+          type: string
+          nullable: true
+          description: Request trace identifier added by ASP.NET Core.
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - type: object
+          description: Problem details for automatic model validation errors.
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              description: Validation messages grouped by field name.
+
+    BadRequestProblemDetails:
+      oneOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - $ref: "#/components/schemas/ValidationProblemDetails"
+      description: Business validation errors use ProblemDetails; automatic model validation errors use ValidationProblemDetails.
 
     RegisterRequest:
       type: object
@@ -1088,4 +1136,3 @@ components:
         rating:
           type: integer
           format: int32
-

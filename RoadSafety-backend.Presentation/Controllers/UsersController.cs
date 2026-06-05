@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RoadSafety_backend.Application.DTOs.Responses.Users;
 using RoadSafety_backend.Application.UseCases.Users;
-using RoadSafety_backend.Domain.Common;
+using RoadSafety_backend.Presentation.Extensions;
 
 namespace RoadSafety_backend.Presentation.Controllers;
 
@@ -26,14 +26,7 @@ public class UsersController(
         var result = await getUserByContactUseCase.ExecuteAsync(email, phone, cancellationToken);
 
         if (!result.IsSuccess)
-        {
-            return result.Error.Type switch
-            {
-                ErrorType.Validation => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status400BadRequest),
-                ErrorType.NotFound => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status404NotFound),
-                _ => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status500InternalServerError)
-            };
-        }
+            return this.ToProblem(result.Error);
 
         return Ok(result.Value);
     }
@@ -47,14 +40,7 @@ public class UsersController(
         var result = await getCurrentUserUseCase.ExecuteAsync(cancellationToken);
 
         if (!result.IsSuccess)
-        {
-            return result.Error.Type switch
-            {
-                ErrorType.Unauthorized => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status401Unauthorized),
-                ErrorType.NotFound => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status404NotFound),
-                _ => Problem(detail: result.Error.Message, statusCode: StatusCodes.Status500InternalServerError)
-            };
-        }
+            return this.ToProblem(result.Error);
 
         return Ok(result.Value);
     }
