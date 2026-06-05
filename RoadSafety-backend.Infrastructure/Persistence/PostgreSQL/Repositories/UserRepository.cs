@@ -1,4 +1,4 @@
-﻿using System.Net.Mail;
+using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
@@ -9,21 +9,16 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<bool> IsEmailInUseAsync(string email, CancellationToken cancellationToken)
+    public async Task<bool> IsEmailInUseAsync(MailAddress email, CancellationToken cancellationToken)
     {
         return await _dbContext.Users
-            .AnyAsync(u => u.Contacts.MailAddress == new MailAddress(email), cancellationToken);
+            .AnyAsync(u => u.Contacts.MailAddress == email, cancellationToken);
     }
 
-        public async Task<bool> IsPhoneInUseAsync(string phone, CancellationToken cancellationToken)
+    public async Task<bool> IsPhoneInUseAsync(PhoneNumber phone, CancellationToken cancellationToken)
     {
-        var phoneResult = PhoneNumber.Create(phone);
-        if (phoneResult.IsFailure)
-            return false;
-
-        var normalized = phoneResult.Value.Value;
         return await _dbContext.Users
-            .AnyAsync(u => u.Contacts.PhoneNumber!.Value == normalized, cancellationToken);
+            .AnyAsync(u => u.Contacts.PhoneNumber!.Value == phone.Value, cancellationToken);
     }
 
     public async Task<User> CreateUserAsync(User user, CancellationToken cancellationToken)
@@ -45,10 +40,10 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
         return true;
     }
 
-    public async Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
+    public async Task<User?> GetUserByEmailAsync(MailAddress email, CancellationToken cancellationToken)
     {
         return await _dbContext.Users
-            .FirstOrDefaultAsync(x => x.Contacts.MailAddress == new MailAddress(email), cancellationToken);
+            .FirstOrDefaultAsync(x => x.Contacts.MailAddress == email, cancellationToken);
     }
 
     public async Task<User?> GetUserByIdAsync(UserId id, CancellationToken cancellationToken)
@@ -57,14 +52,9 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-        public async Task<User?> GetUserByPhoneAsync(string phone, CancellationToken cancellationToken)
+    public async Task<User?> GetUserByPhoneAsync(PhoneNumber phone, CancellationToken cancellationToken)
     {
-        var phoneResult = PhoneNumber.Create(phone);
-        if (phoneResult.IsFailure)
-            return null;
-
-        var normalized = phoneResult.Value.Value;
         return await _dbContext.Users
-            .FirstOrDefaultAsync(x => x.Contacts.PhoneNumber!.Value == normalized, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Contacts.PhoneNumber!.Value == phone.Value, cancellationToken);
     }
 }

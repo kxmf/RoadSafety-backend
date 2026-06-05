@@ -1,4 +1,5 @@
-﻿using RoadSafety_backend.Application.DTOs.Responses.Users;
+using System.Net.Mail;
+using RoadSafety_backend.Application.DTOs.Responses.Users;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
@@ -17,9 +18,20 @@ public class GetUserByContactUseCase(
         User? user = null;
 
         if (!string.IsNullOrWhiteSpace(email))
-            user = await userRepository.GetUserByEmailAsync(email, cancellationToken);
+        {
+            if (!MailAddress.TryCreate(email.Trim(), out var mailAddress))
+                return Result<UserResponse>.Failure(Error.Validation("Invalid email format"));
+
+            user = await userRepository.GetUserByEmailAsync(mailAddress, cancellationToken);
+        }
         else if (!string.IsNullOrWhiteSpace(phone))
-            user = await userRepository.GetUserByPhoneAsync(phone, cancellationToken);
+        {
+            var phoneResult = PhoneNumber.Create(phone);
+            if (phoneResult.IsFailure)
+                return Result<UserResponse>.Failure(phoneResult.Error);
+
+            user = await userRepository.GetUserByPhoneAsync(phoneResult.Value, cancellationToken);
+        }
 
         if (user is null)
             return Result<UserResponse>.Failure(Error.NotFound("User not found"));

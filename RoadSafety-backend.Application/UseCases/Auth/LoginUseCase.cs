@@ -16,14 +16,14 @@ public class LoginUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        User? user;
+        var loginResult = ContactLogin.Create(request.Login);
+        if (loginResult.IsFailure)
+            return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));
 
-        bool isEmail = request.Login.Contains('@');
-
-        if (isEmail)
-            user = await userRepository.GetUserByEmailAsync(request.Login, cancellationToken);
-        else
-            user = await userRepository.GetUserByPhoneAsync(request.Login, cancellationToken);
+        var login = loginResult.Value;
+        var user = login.IsEmail
+            ? await userRepository.GetUserByEmailAsync(login.MailAddress!, cancellationToken)
+            : await userRepository.GetUserByPhoneAsync(login.PhoneNumber!, cancellationToken);
 
         if (user == null || !passwordService.Verify(request.Password, user.HashedPassword))
             return Result<AuthResponse>.Failure(new Error(ErrorType.Unauthorized, "Incorrect login or password"));

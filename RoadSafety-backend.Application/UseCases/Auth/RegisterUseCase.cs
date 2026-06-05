@@ -16,36 +16,36 @@ public class RegisterUseCase(
 {
     public async Task<Result<AuthResponse>> ExecuteAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        string? email = null;
-        string? phoneNumber = null;
+        var loginResult = ContactLogin.Create(request.Login);
+        if (loginResult.IsFailure)
+            return Result<AuthResponse>.Failure(loginResult.Error);
 
-        bool isEmail = request.Login.Contains('@');
+        var login = loginResult.Value;
+        UserContacts contacts;
 
-        if (isEmail)
+        if (login.IsEmail)
         {
-            email = request.Login;
-            var existingEmailUser = await userRepository.GetUserByEmailAsync(email, cancellationToken);
+            var existingEmailUser = await userRepository.GetUserByEmailAsync(login.MailAddress!, cancellationToken);
 
             if (existingEmailUser != null)
                 return Result<AuthResponse>.Failure(Error.Conflict("Email already used"));
+
+            contacts = UserContacts.FromEmail(login.MailAddress!);
         }
         else
         {
-            phoneNumber = request.Login;
-            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(phoneNumber, cancellationToken);
+            var existingPhoneUser = await userRepository.GetUserByPhoneAsync(login.PhoneNumber!, cancellationToken);
 
             if (existingPhoneUser != null)
                 return Result<AuthResponse>.Failure(Error.Conflict("Phone already used"));
-        }
 
-        var contactsResult = UserContacts.Create(email, phoneNumber);
-        if (contactsResult.IsFailure)
-            return Result<AuthResponse>.Failure(contactsResult.Error);
+            contacts = UserContacts.FromPhone(login.PhoneNumber!);
+        }
 
         var hashedPassword = passwordService.Hash(request.Password);
         var userId = UserId.New();
 
-        var user = User.Create(userId, hashedPassword, contactsResult.Value);
+        var user = User.Create(userId, hashedPassword, contacts);
         await userRepository.CreateUserAsync(user, cancellationToken);
 
         var sessionId = SessionId.New();
