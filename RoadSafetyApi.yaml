@@ -355,6 +355,7 @@ paths:
       summary: Join family using invite code
       description: |
         По валидному одноразовому коду сервер создаёт запись FamilyMember и добавляет пользователя в семью.
+        Если userRole не совпадает с ролью, для которой создан inviteCode, добавление не происходит.
       operationId: joinFamilyByInviteCode
       requestBody:
         required: true
@@ -855,9 +856,16 @@ components:
       type: object
       required:
         - inviteCode
+        - userRole
       properties:
         inviteCode:
           type: string
+        userRole:
+          type: string
+          enum:
+            - Parent
+            - Child
+          description: Роль пользователя, которая должна совпадать с ролью inviteCode.
 
     JoinFamilyByInviteCodeResponse:
       type: object
