@@ -5,6 +5,8 @@ using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Presentation;
 using Scalar.AspNetCore;
 
+LoadDotEnv();
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -38,3 +40,43 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void LoadDotEnv()
+{
+    var path = FindDotEnvPath();
+    if (!File.Exists(path))
+        return;
+
+    foreach (var line in File.ReadAllLines(path))
+    {
+        var trimmedLine = line.Trim();
+        if (trimmedLine.Length == 0 || trimmedLine.StartsWith('#'))
+            continue;
+
+        var separatorIndex = trimmedLine.IndexOf('=');
+        if (separatorIndex <= 0)
+            continue;
+
+        var key = trimmedLine[..separatorIndex].Trim();
+        var value = trimmedLine[(separatorIndex + 1)..].Trim().Trim('"', '\'');
+
+        if (Environment.GetEnvironmentVariable(key) is null)
+            Environment.SetEnvironmentVariable(key, value);
+    }
+}
+
+static string FindDotEnvPath()
+{
+    var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+    while (directory is not null)
+    {
+        var path = Path.Combine(directory.FullName, ".env");
+        if (File.Exists(path))
+            return path;
+
+        directory = directory.Parent;
+    }
+
+    return string.Empty;
+}

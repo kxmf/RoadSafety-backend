@@ -40,7 +40,16 @@ public static class DependencyInjection
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
-        services.AddHttpClient<OverpassMapDataClient>();
+        services.AddHttpClient<OverpassMapDataClient>(client =>
+        {
+            var contactEmail = configuration["MapGeneration:OverpassContactEmail"]?.Trim();
+            var userAgent = string.IsNullOrWhiteSpace(contactEmail)
+                ? "RoadSafetyBackend/1.0"
+                : $"RoadSafetyBackend/1.0 ({contactEmail})";
+
+            client.DefaultRequestHeaders.Add("User-Agent", userAgent);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
         services.AddScoped<MapAreaGenerationService>();
         services.AddHostedService<MapAreaGenerationBackgroundService>();
 

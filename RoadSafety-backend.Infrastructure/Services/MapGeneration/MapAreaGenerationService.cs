@@ -41,18 +41,18 @@ internal sealed class MapAreaGenerationService(
         var redAreas = GenerateRoadAreas(cityBounds, roads);
         var yellowAreas = GenerateCrossingAreas(cityBounds, crossings, nodes);
         redAreas = SubtractAreas(redAreas, yellowAreas);
-        var greenAreas = GenerateGreenAreas(cityBounds, redAreas, yellowAreas);
+        var greenAreas = GenerateGreenAreas(cityBounds, redAreas.Select(area => area.Polygon).ToList(), yellowAreas);
 
-        return redAreas.Select(p => CreateArea(RiskLevel.Red, p, city.CityId, null))
+        return redAreas.Select(area => CreateArea(RiskLevel.Red, area.Polygon, city.CityId, area.OsmId))
             .Concat(yellowAreas.Select(p => CreateArea(RiskLevel.Yellow, p, city.CityId, null)))
             .Concat(greenAreas.Select(p => CreateArea(RiskLevel.Green, p, city.CityId, null)))
             .ToList();
     }
 
-    private List<Polygon> GenerateRoadAreas(Polygon cityBounds, List<OsmWay> roads)
+    private List<GeneratedPolygon> GenerateRoadAreas(Polygon cityBounds, List<OsmWay> roads)
     {
         var bufferParameters = new BufferParameters { EndCapStyle = EndCapStyle.Flat };
-        var polygons = new List<Polygon>();
+        var polygons = new List<GeneratedPolygon>();
 
         foreach (var road in roads)
         {
@@ -60,7 +60,7 @@ internal sealed class MapAreaGenerationService(
             var width = OsmRoadClassifier.GetWidthMeters(road.Tags);
             var buffered = line.Buffer(width / 2.0, bufferParameters).Intersection(cityBounds);
 
-            polygons.AddRange(ExtractPolygons(buffered));
+            polygons.AddRange(ExtractPolygons(buffered).Select(polygon => new GeneratedPolygon(polygon, road.Id)));
         }
 
         return polygons;
@@ -120,7 +120,7 @@ internal sealed class MapAreaGenerationService(
         return greenAreas;
     }
 
-    private List<Polygon> SubtractAreas(List<Polygon> sourceAreas, List<Polygon> areasToSubtract)
+    private List<GeneratedPolygon> SubtractAreas(List<GeneratedPolygon> sourceAreas, List<Polygon> areasToSubtract)
     {
         if (sourceAreas.Count == 0 || areasToSubtract.Count == 0)
             return sourceAreas;
@@ -128,8 +128,8 @@ internal sealed class MapAreaGenerationService(
         var subtractGeometry = CreateGeometryCollection(UnionPolygons(areasToSubtract.Cast<Geometry>())).Union();
 
         return sourceAreas
-            .Select(source => source.Difference(subtractGeometry))
-            .SelectMany(ExtractPolygons)
+            .SelectMany(source => ExtractPolygons(source.Polygon.Difference(subtractGeometry))
+                .Select(polygon => new GeneratedPolygon(polygon, source.OsmId)))
             .ToList();
     }
 
@@ -176,4 +176,6 @@ internal sealed class MapAreaGenerationService(
 
         return MapArea.Create(MapAreaId.New(), osmId, risk, wgs84Polygon, cityId);
     }
+
+    private sealed record GeneratedPolygon(Polygon Polygon, long? OsmId);
 }

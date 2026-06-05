@@ -6,6 +6,7 @@ public sealed class MapGenerationSettings
     public int IntervalDays { get; init; } = 7;
     public bool RunOnStartup { get; init; }
     public string OverpassUrl { get; init; } = "https://overpass-api.de/api/interpreter";
+    public string? OverpassContactEmail { get; init; }
     public int GridCellSizeMeters { get; init; } = 1000;
     public int GridMarginMeters { get; init; } = 50;
     public double MinimumPolygonAreaSquareMeters { get; init; } = 10;
