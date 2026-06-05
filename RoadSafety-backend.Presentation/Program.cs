@@ -3,43 +3,76 @@ using RoadSafety_backend.Application;
 using RoadSafety_backend.Infrastructure;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Presentation;
+using Serilog;
+using Serilog.Events;
 using Scalar.AspNetCore;
 
 LoadDotEnv();
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Add services to the container.
-
-builder.Services.AddApplication()
-                .AddInfrastructure(builder.Configuration)
-                .AddPresentation(builder.Configuration);
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+try
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var builder = WebApplication.CreateBuilder(args);
 
-    await dbContext.Database.MigrateAsync();
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+    {
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext();
+    });
+
+    // Add services to the container.
+
+    builder.Services.AddApplication()
+                    .AddInfrastructure(builder.Configuration)
+                    .AddPresentation(builder.Configuration);
+
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await dbContext.Database.MigrateAsync();
+    }
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate =
+            "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    });
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    await app.RunAsync();
 }
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+catch (Exception exception)
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    Log.Fatal(exception, "Application terminated unexpectedly");
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
 
 static void LoadDotEnv()
 {

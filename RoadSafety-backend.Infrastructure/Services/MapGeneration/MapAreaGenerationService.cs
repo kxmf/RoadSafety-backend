@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Index.Strtree;
 using NetTopologySuite.Operation.Buffer;
+using NetTopologySuite.Operation.Union;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
 
@@ -36,16 +38,21 @@ internal sealed class MapAreaGenerationService(
 
         var areas = GenerateAreas(city, ways, nodes);
 
-        await mapAreaRepository.ReplaceCityAreasAsync(city.CityId, areas, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
         logger.LogInformation(
-            "Saved generated map areas for city {CityId}. Total: {TotalCount}, Red: {RedCount}, Yellow: {YellowCount}, Green: {GreenCount}.",
+            "Saving generated map areas for city {CityId}. Total: {TotalCount}, Red: {RedCount}, Yellow: {YellowCount}, Green: {GreenCount}.",
             city.CityId,
             areas.Count,
             areas.Count(area => area.Risk == RiskLevel.Red),
             areas.Count(area => area.Risk == RiskLevel.Yellow),
             areas.Count(area => area.Risk == RiskLevel.Green));
+
+        await mapAreaRepository.ReplaceCityAreasAsync(city.CityId, areas, cancellationToken);
+        var savedChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Saved generated map areas for city {CityId}. SavedChanges: {SavedChanges}.",
+            city.CityId,
+            savedChanges);
     }
 
     private List<MapArea> GenerateAreas(MapGenerationCitySettings city, List<OsmWay> ways, List<OsmNode> nodes)
@@ -130,6 +137,7 @@ internal sealed class MapAreaGenerationService(
     {
         var greenAreas = new List<Polygon>();
         var envelope = cityBounds.EnvelopeInternal;
+        var unsafeAreaIndex = BuildSpatialIndex(redAreas.Concat(yellowAreas));
 
         for (var x = envelope.MinX; x < envelope.MaxX; x += _settings.GridCellSizeMeters)
         {
@@ -147,12 +155,13 @@ internal sealed class MapAreaGenerationService(
                     Math.Min(x + _settings.GridCellSizeMeters + _settings.GridMarginMeters, envelope.MaxX),
                     Math.Min(y + _settings.GridCellSizeMeters + _settings.GridMarginMeters, envelope.MaxY));
 
-                var roadNetwork = UnionPolygons(redAreas.Where(p => p.Intersects(workCell)).Cast<Geometry>());
-                var yellowNetwork = UnionPolygons(yellowAreas.Where(p => p.Intersects(workCell)).Cast<Geometry>());
-                var unsafeNetwork = UnionPolygons(roadNetwork.Concat(yellowNetwork).Cast<Geometry>());
-
+                var unsafeAreas = unsafeAreaIndex
+                    .Query(workCell.EnvelopeInternal)
+                    .Where(p => p.Intersects(workCell))
+                    .Cast<Geometry>()
+                    .ToArray();
                 var cityCell = cityBounds.Intersection(cell);
-                var green = unsafeNetwork.Count == 0 ? cityCell : cityCell.Difference(CreateGeometryCollection(unsafeNetwork).Union());
+                var green = unsafeAreas.Length == 0 ? cityCell : cityCell.Difference(UnaryUnionOp.Union(unsafeAreas));
                 greenAreas.AddRange(ExtractPolygons(green));
             }
         }
@@ -165,7 +174,7 @@ internal sealed class MapAreaGenerationService(
         if (sourceAreas.Count == 0 || areasToSubtract.Count == 0)
             return sourceAreas;
 
-        var subtractGeometry = CreateGeometryCollection(UnionPolygons(areasToSubtract.Cast<Geometry>())).Union();
+        var subtractGeometry = UnaryUnionOp.Union(areasToSubtract.Cast<Geometry>());
 
         return sourceAreas
             .SelectMany(source => ExtractPolygons(source.Polygon.Difference(subtractGeometry))
@@ -173,10 +182,15 @@ internal sealed class MapAreaGenerationService(
             .ToList();
     }
 
-    private static GeometryCollection CreateGeometryCollection(IReadOnlyCollection<Polygon> polygons)
+    private static STRtree<Polygon> BuildSpatialIndex(IEnumerable<Polygon> polygons)
     {
-        var factory = new GeometryFactory(new PrecisionModel(), 3857);
-        return factory.CreateGeometryCollection(polygons.Cast<Geometry>().ToArray());
+        var index = new STRtree<Polygon>();
+
+        foreach (var polygon in polygons.Where(p => !p.IsEmpty))
+            index.Insert(polygon.EnvelopeInternal, polygon);
+
+        index.Build();
+        return index;
     }
 
     private List<Polygon> UnionPolygons(IEnumerable<Geometry> geometries)
@@ -185,8 +199,7 @@ internal sealed class MapAreaGenerationService(
         if (items.Length == 0)
             return [];
 
-        var factory = new GeometryFactory(new PrecisionModel(), 3857);
-        return ExtractPolygons(factory.CreateGeometryCollection(items).Union());
+        return ExtractPolygons(UnaryUnionOp.Union(items));
     }
 
     private List<Polygon> ExtractPolygons(Geometry geometry)
