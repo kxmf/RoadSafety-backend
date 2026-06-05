@@ -27,6 +27,11 @@ internal sealed class MapAreaGenerationBackgroundService(
         }
 
         var interval = TimeSpan.FromDays(Math.Max(1, _settings.IntervalDays));
+        logger.LogInformation(
+            "Map area generation background service started. CityCount: {CityCount}, RunOnStartup: {RunOnStartup}, Interval: {Interval}.",
+            _settings.Cities.Count(c => !string.IsNullOrWhiteSpace(c.CityId)),
+            _settings.RunOnStartup,
+            interval);
 
         if (_settings.RunOnStartup)
             await GenerateAllCitiesAsync(stoppingToken);
@@ -38,14 +43,21 @@ internal sealed class MapAreaGenerationBackgroundService(
 
     private async Task GenerateAllCitiesAsync(CancellationToken cancellationToken)
     {
-        foreach (var city in _settings.Cities.Where(c => !string.IsNullOrWhiteSpace(c.CityId)))
+        var cities = _settings.Cities.Where(c => !string.IsNullOrWhiteSpace(c.CityId)).ToList();
+        logger.LogInformation("Starting map area generation run. CityCount: {CityCount}.", cities.Count);
+
+        foreach (var city in cities)
         {
             try
             {
+                logger.LogInformation("Starting map area generation city run. CityId: {CityId}.", city.CityId);
+
                 using var scope = scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<MapAreaGenerationService>();
 
                 await service.GenerateCityAsync(city, cancellationToken);
+
+                logger.LogInformation("Finished map area generation city run. CityId: {CityId}.", city.CityId);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

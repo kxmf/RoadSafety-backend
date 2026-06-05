@@ -2,13 +2,15 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using NetTopologySuite.Geometries;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace RoadSafety_backend.Infrastructure.Services.MapGeneration;
 
 internal sealed class OverpassMapDataClient(
     HttpClient httpClient,
-    IOptions<MapGenerationSettings> options)
+    IOptions<MapGenerationSettings> options,
+    ILogger<OverpassMapDataClient> logger)
 {
     private readonly MapGenerationSettings _settings = options.Value;
     private static readonly GeometryFactory GeometryFactory = new(new PrecisionModel(), 4326);
@@ -20,12 +22,31 @@ internal sealed class OverpassMapDataClient(
         var query = BuildQuery(city);
         using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
 
+        logger.LogInformation(
+            "Requesting Overpass map data. CityId: {CityId}, OverpassUrl: {OverpassUrl}, Bbox: {Bbox}.",
+            city.CityId,
+            _settings.OverpassUrl,
+            DescribeBbox(city));
+
         var response = await httpClient.PostAsync(_settings.OverpassUrl, content, cancellationToken);
+        logger.LogInformation(
+            "Overpass map data response received. CityId: {CityId}, StatusCode: {StatusCode}.",
+            city.CityId,
+            (int)response.StatusCode);
+
         response.EnsureSuccessStatusCode();
 
         var data = await response.Content.ReadFromJsonAsync<OverpassResponse>(cancellationToken);
         if (data is null)
+        {
+            logger.LogWarning("Overpass map data response was empty. CityId: {CityId}.", city.CityId);
             return ([], []);
+        }
+
+        logger.LogInformation(
+            "Overpass map data parsed. CityId: {CityId}, ElementCount: {ElementCount}.",
+            city.CityId,
+            data.Elements.Count);
 
         var nodesById = data.Elements
             .Where(e => e.Type == "node" && e.Id is not null && e.Lat is not null && e.Lon is not null)
@@ -60,6 +81,12 @@ internal sealed class OverpassMapDataClient(
             ways.Add(new OsmWay(element.Id.Value, tags, GeometryFactory.CreateLineString(coordinates)));
         }
 
+        logger.LogInformation(
+            "Overpass map data converted. CityId: {CityId}, Ways: {WayCount}, CrossingNodes: {CrossingNodeCount}.",
+            city.CityId,
+            ways.Count,
+            crossingNodes.Count);
+
         return (ways, crossingNodes);
     }
 
@@ -80,6 +107,11 @@ internal sealed class OverpassMapDataClient(
             (._;>;);
             out body;
             """;
+    }
+
+    private static string DescribeBbox(MapGenerationCitySettings city)
+    {
+        return FormattableString.Invariant($"{city.MinLon},{city.MinLat},{city.MaxLon},{city.MaxLat}");
     }
 
     private sealed class OverpassResponse

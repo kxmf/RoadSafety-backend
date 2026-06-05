@@ -18,15 +18,34 @@ internal sealed class MapAreaGenerationService(
 
     public async Task GenerateCityAsync(MapGenerationCitySettings city, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting map area generation for city {CityId}.", city.CityId);
+        logger.LogInformation(
+            "Starting map area generation for city {CityId}. Bbox: {Bbox}, GridCellSizeMeters: {GridCellSizeMeters}, GridMarginMeters: {GridMarginMeters}, CrossingBufferMeters: {CrossingBufferMeters}, MinimumPolygonAreaSquareMeters: {MinimumPolygonAreaSquareMeters}.",
+            city.CityId,
+            DescribeBbox(city),
+            _settings.GridCellSizeMeters,
+            _settings.GridMarginMeters,
+            _settings.CrossingBufferMeters,
+            _settings.MinimumPolygonAreaSquareMeters);
 
         var (ways, nodes) = await overpassClient.GetCityDataAsync(city, cancellationToken);
+        logger.LogInformation(
+            "Loaded OSM data for city {CityId}. Ways: {WayCount}, CrossingNodes: {CrossingNodeCount}.",
+            city.CityId,
+            ways.Count,
+            nodes.Count);
+
         var areas = GenerateAreas(city, ways, nodes);
 
         await mapAreaRepository.ReplaceCityAreasAsync(city.CityId, areas, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Generated {Count} map areas for city {CityId}.", areas.Count, city.CityId);
+        logger.LogInformation(
+            "Saved generated map areas for city {CityId}. Total: {TotalCount}, Red: {RedCount}, Yellow: {YellowCount}, Green: {GreenCount}.",
+            city.CityId,
+            areas.Count,
+            areas.Count(area => area.Risk == RiskLevel.Red),
+            areas.Count(area => area.Risk == RiskLevel.Yellow),
+            areas.Count(area => area.Risk == RiskLevel.Green));
     }
 
     private List<MapArea> GenerateAreas(MapGenerationCitySettings city, List<OsmWay> ways, List<OsmNode> nodes)
@@ -38,10 +57,31 @@ internal sealed class MapAreaGenerationService(
 
         crossings.AddRange(pedestrianPaths.Where(w => OsmRoadClassifier.IsCrossing(w.Tags)));
 
+        logger.LogInformation(
+            "Classified OSM data for city {CityId}. RoadWays: {RoadWayCount}, CrossingWays: {CrossingWayCount}, PedestrianPathsToKeep: {PedestrianPathCount}, CrossingNodes: {CrossingNodeCount}.",
+            city.CityId,
+            roads.Count,
+            crossings.Count,
+            pedestrianPaths.Count,
+            nodes.Count);
+
         var redAreas = GenerateRoadAreas(cityBounds, roads);
         var yellowAreas = GenerateCrossingAreas(cityBounds, crossings, nodes);
+        logger.LogInformation(
+            "Generated unsafe map areas for city {CityId}. RawRedAreas: {RawRedAreaCount}, YellowAreas: {YellowAreaCount}.",
+            city.CityId,
+            redAreas.Count,
+            yellowAreas.Count);
+
         redAreas = SubtractAreas(redAreas, yellowAreas);
         var greenAreas = GenerateGreenAreas(cityBounds, redAreas.Select(area => area.Polygon).ToList(), yellowAreas);
+
+        logger.LogInformation(
+            "Generated final map area polygons for city {CityId}. RedAreas: {RedAreaCount}, YellowAreas: {YellowAreaCount}, GreenAreas: {GreenAreaCount}.",
+            city.CityId,
+            redAreas.Count,
+            yellowAreas.Count,
+            greenAreas.Count);
 
         return redAreas.Select(area => CreateArea(RiskLevel.Red, area.Polygon, city.CityId, area.OsmId))
             .Concat(yellowAreas.Select(p => CreateArea(RiskLevel.Yellow, p, city.CityId, null)))
@@ -175,6 +215,11 @@ internal sealed class MapAreaGenerationService(
         wgs84Polygon.SRID = 4326;
 
         return MapArea.Create(MapAreaId.New(), osmId, risk, wgs84Polygon, cityId);
+    }
+
+    private static string DescribeBbox(MapGenerationCitySettings city)
+    {
+        return FormattableString.Invariant($"{city.MinLon},{city.MinLat},{city.MaxLon},{city.MaxLat}");
     }
 
     private sealed record GeneratedPolygon(Polygon Polygon, long? OsmId);
