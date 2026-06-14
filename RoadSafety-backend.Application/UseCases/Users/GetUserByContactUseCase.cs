@@ -37,6 +37,8 @@ public class GetUserByContactUseCase(
             return Result<UserResponse>.Failure(Error.NotFound("User not found"));
 
         var family = await familyRepository.GetFamilyByMemberUserIdAsync(user.Id, cancellationToken);
+        var familyRole = family?.Members.FirstOrDefault(member => member.UserId == user.Id)?.Role
+            ?? (family?.CreatedByUserId == user.Id ? FamilyMemberRole.Parent : null as FamilyMemberRole?);
 
         var response = new UserResponse(
             user.Id,
@@ -46,7 +48,8 @@ public class GetUserByContactUseCase(
             user.Profile?.LastName,
             user.Profile?.Patronymic,
             user.Profile?.BirthDate,
-            family?.Id.Value
+            family?.Id.Value,
+            familyRole?.ToString()
         );
 
         return Result<UserResponse>.Success(response);

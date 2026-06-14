@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
@@ -47,6 +50,15 @@ internal sealed class MapAreaGenerationService(
             areas.Count(area => area.Risk == RiskLevel.Green));
 
         await mapAreaRepository.ReplaceCityAreasAsync(city.CityId, areas, cancellationToken);
+        await mapAreaRepository.UpsertCityMetadataAsync(
+            city.CityId,
+            DateTimeOffset.UtcNow,
+            city.MinLon,
+            city.MinLat,
+            city.MaxLon,
+            city.MaxLat,
+            cancellationToken);
+
         var savedChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -80,6 +92,7 @@ internal sealed class MapAreaGenerationService(
             redAreas.Count,
             yellowAreas.Count);
 
+        redAreas = UnionGeneratedPolygons(redAreas);
         redAreas = SubtractAreas(redAreas, yellowAreas);
         var greenAreas = GenerateGreenAreas(cityBounds, redAreas.Select(area => area.Polygon).ToList(), yellowAreas);
 
@@ -182,6 +195,16 @@ internal sealed class MapAreaGenerationService(
             .ToList();
     }
 
+    private List<GeneratedPolygon> UnionGeneratedPolygons(List<GeneratedPolygon> areas)
+    {
+        if (areas.Count == 0)
+            return [];
+
+        return UnionPolygons(areas.Select(area => (Geometry)area.Polygon))
+            .Select(polygon => new GeneratedPolygon(polygon, null))
+            .ToList();
+    }
+
     private static STRtree<Polygon> BuildSpatialIndex(IEnumerable<Polygon> polygons)
     {
         var index = new STRtree<Polygon>();
@@ -227,7 +250,20 @@ internal sealed class MapAreaGenerationService(
         var wgs84Polygon = WebMercatorProjection.ToWgs84Polygon(webMercatorPolygon);
         wgs84Polygon.SRID = 4326;
 
-        return MapArea.Create(MapAreaId.New(), osmId, risk, wgs84Polygon, cityId);
+        var baseAreaKey = CreateBaseAreaKey(cityId, risk, osmId, wgs84Polygon);
+
+        return MapArea.Create(MapAreaId.New(), osmId, baseAreaKey, risk, wgs84Polygon, cityId);
+    }
+
+    private static string CreateBaseAreaKey(string cityId, RiskLevel risk, long? osmId, Polygon polygon)
+    {
+        var envelope = polygon.EnvelopeInternal;
+        var rawKey = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{cityId}:{risk}:{osmId}:{Math.Round(envelope.MinX, 7)}:{Math.Round(envelope.MinY, 7)}:{Math.Round(envelope.MaxX, 7)}:{Math.Round(envelope.MaxY, 7)}:{Math.Round(polygon.Area, 12)}");
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawKey))).ToLowerInvariant()[..16];
+
+        return $"{cityId}:{risk.ToString().ToLowerInvariant()}:{hash}";
     }
 
     private static string DescribeBbox(MapGenerationCitySettings city)

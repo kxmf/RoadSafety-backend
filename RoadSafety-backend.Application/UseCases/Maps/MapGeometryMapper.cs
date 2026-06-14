@@ -9,42 +9,6 @@ internal static class MapGeometryMapper
     private const int Wgs84Srid = 4326;
     private static readonly GeometryFactory GeometryFactory = new(new PrecisionModel(), Wgs84Srid);
 
-    public static Result<Polygon> CreateBboxPolygon(string bbox)
-    {
-        if (string.IsNullOrWhiteSpace(bbox))
-            return Result<Polygon>.Failure(Error.Validation("bbox is required."));
-
-        var parts = bbox.Split(',', StringSplitOptions.TrimEntries);
-        if (parts.Length != 4)
-            return Result<Polygon>.Failure(Error.Validation("bbox must contain four comma-separated numbers."));
-
-        var values = new double[4];
-        for (var i = 0; i < parts.Length; i++)
-        {
-            if (!double.TryParse(parts[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out values[i]))
-                return Result<Polygon>.Failure(Error.Validation("bbox must contain valid numbers."));
-        }
-
-        var minLon = values[0];
-        var minLat = values[1];
-        var maxLon = values[2];
-        var maxLat = values[3];
-
-        if (minLon < -180 || maxLon > 180 || minLat < -90 || maxLat > 90)
-            return Result<Polygon>.Failure(Error.Validation("bbox coordinates must be valid WGS84 longitude and latitude values."));
-
-        if (minLon >= maxLon || minLat >= maxLat)
-            return Result<Polygon>.Failure(Error.Validation("bbox minimum coordinates must be less than maximum coordinates."));
-
-        return Result<Polygon>.Success(CreatePolygon([
-            new Coordinate(minLon, minLat),
-            new Coordinate(maxLon, minLat),
-            new Coordinate(maxLon, maxLat),
-            new Coordinate(minLon, maxLat),
-            new Coordinate(minLon, minLat)
-        ]));
-    }
-
     public static Result<Polygon> FromGeoJsonPolygon(GeoJsonGeometryDto? geometry)
     {
         if (geometry is null)
@@ -110,12 +74,6 @@ internal static class MapGeometryMapper
             return Result<LinearRing>.Failure(Error.Validation("Polygon linear rings must be closed."));
 
         return Result<LinearRing>.Success(GeometryFactory.CreateLinearRing(coordinates));
-    }
-
-    private static Polygon CreatePolygon(Coordinate[] coordinates)
-    {
-        var shell = GeometryFactory.CreateLinearRing(coordinates);
-        return GeometryFactory.CreatePolygon(shell);
     }
 
     private static double[][] ToCoordinates(LineString ring)

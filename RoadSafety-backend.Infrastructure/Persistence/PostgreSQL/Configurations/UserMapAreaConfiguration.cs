@@ -24,8 +24,9 @@ public class UserMapAreaConfiguration : IEntityTypeConfiguration<UserMapArea>
         builder.Property(area => area.ChildId)
             .HasColumnName("child_id");
 
-        builder.Property(area => area.BaseAreaId)
-            .HasColumnName("base_area_id");
+        builder.Property(area => area.BaseAreaKey)
+            .HasColumnName("base_area_key")
+            .HasColumnType("varchar");
 
         builder.Property(area => area.Risk)
             .HasColumnName("risk")
@@ -35,8 +36,7 @@ public class UserMapAreaConfiguration : IEntityTypeConfiguration<UserMapArea>
 
         builder.Property(area => area.Geometry)
             .HasColumnName("geom")
-            .HasColumnType("geometry(Polygon, 4326)")
-            .IsRequired();
+            .HasColumnType("geometry(Polygon, 4326)");
 
         builder.Property(area => area.CreatedByUserId)
             .HasColumnName("created_by_user_id");
@@ -45,12 +45,16 @@ public class UserMapAreaConfiguration : IEntityTypeConfiguration<UserMapArea>
             .HasColumnName("created_at")
             .HasDefaultValueSql("now() at time zone 'utc'");
 
+        builder.Property(area => area.UpdatedAt)
+            .HasColumnName("updated_at")
+            .HasDefaultValueSql("now() at time zone 'utc'");
+
         builder.HasIndex(area => area.Geometry)
             .HasDatabaseName("user_areas_geom_idx")
             .HasMethod("gist");
 
         builder.HasIndex(area => new { area.FamilyId, area.ChildId });
-        builder.HasIndex(area => area.BaseAreaId);
+        builder.HasIndex(area => area.BaseAreaKey);
 
         builder.HasOne<Family>()
             .WithMany()
@@ -61,11 +65,6 @@ public class UserMapAreaConfiguration : IEntityTypeConfiguration<UserMapArea>
             .WithMany()
             .HasForeignKey(area => area.ChildId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne<MapArea>()
-            .WithMany()
-            .HasForeignKey(area => area.BaseAreaId)
-            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne<User>()
             .WithMany()

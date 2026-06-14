@@ -10,13 +10,14 @@ public sealed class MapGenerationSettings
     public int GridCellSizeMeters { get; init; } = 1000;
     public int GridMarginMeters { get; init; } = 50;
     public double MinimumPolygonAreaSquareMeters { get; init; } = 10;
-    public double CrossingBufferMeters { get; init; } = 6;
+    public double CrossingBufferMeters { get; init; } = 12;
     public List<MapGenerationCitySettings> Cities { get; init; } = [];
 }
 
 public sealed class MapGenerationCitySettings
 {
     public string CityId { get; init; } = string.Empty;
+    public string? Name { get; init; }
     public double MinLon { get; init; }
     public double MinLat { get; init; }
     public double MaxLon { get; init; }

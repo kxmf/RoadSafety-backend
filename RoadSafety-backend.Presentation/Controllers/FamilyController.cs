@@ -15,6 +15,7 @@ public class FamilyController(
     GetFamilyMembersUseCase getFamilyMembersUseCase,
     JoinFamilyByInviteCodeUseCase joinFamilyByInviteCodeUseCase,
     CreateInviteCodeUseCase createInviteCodeUseCase,
+    UpdateFamilyCityUseCase updateFamilyCityUseCase,
     ILogger<FamilyController> logger
     ) : ControllerBase
 {
@@ -45,6 +46,38 @@ public class FamilyController(
             result.Value.CreatedByUserId);
 
         return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    [HttpPut("{familyId}/city")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateFamilyCity(
+        Guid familyId,
+        [FromBody] UpdateFamilyCityRequest request,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Family city update requested. FamilyId: {FamilyId}, CityId: {CityId}.", familyId, request.CityId);
+
+        var result = await updateFamilyCityUseCase.ExecuteAsync(familyId, request, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Family city update failed. FamilyId: {FamilyId}, CityId: {CityId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                familyId,
+                request.CityId,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        logger.LogInformation("Family city updated. FamilyId: {FamilyId}, CityId: {CityId}.", familyId, request.CityId);
+
+        return NoContent();
     }
 
     [HttpGet("{familyId}/members")]

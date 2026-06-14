@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IFamilyRepository, FamilyRepository>();
         services.AddScoped<IInviteCodeRepository, InviteCodeRepository>();
         services.AddScoped<IMapAreaRepository, MapAreaRepository>();
+        services.AddScoped<IMapCityRepository, MapCityRepository>();
         services.AddScoped<IUserMapAreaRepository, UserMapAreaRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

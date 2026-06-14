@@ -18,11 +18,15 @@ public static class DependencyInjection
         services.AddScoped<GetFamilyMembersUseCase>();
         services.AddScoped<JoinFamilyByInviteCodeUseCase>();
         services.AddScoped<CreateInviteCodeUseCase>();
+        services.AddScoped<UpdateFamilyCityUseCase>();
         services.AddScoped<GetUserByContactUseCase>();
         services.AddScoped<GetCurrentUserUseCase>();
-        services.AddScoped<GetMapAreasUseCase>();
         services.AddScoped<GetUserMapAreasUseCase>();
-        services.AddScoped<CreateUserMapAreaUseCase>();
+        services.AddScoped<GetMapCitiesUseCase>();
+        services.AddScoped<GetMapTileUseCase>();
+        services.AddScoped<GetCityMetadataUseCase>();
+        services.AddScoped<CreateBaseAreaOverrideUseCase>();
+        services.AddScoped<CreateCustomUserMapAreaUseCase>();
 
         return services;
     }

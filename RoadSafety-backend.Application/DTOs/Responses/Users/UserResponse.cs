@@ -8,5 +8,6 @@ public record UserResponse(
     string? LastName,
     string? Patronymic,
     DateOnly? BirthDate,
-    Guid? FamilyId
+    Guid? FamilyId,
+    string? FamilyRole
 );

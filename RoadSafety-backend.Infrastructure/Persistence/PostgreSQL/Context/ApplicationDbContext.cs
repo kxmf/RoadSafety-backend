@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Session> Sessions { get; set; }
     public DbSet<InviteCode> InviteCodes { get; set; }
     public DbSet<MapArea> MapAreas { get; set; }
+    public DbSet<MapCityMetadata> MapCityMetadata { get; set; }
     public DbSet<UserMapArea> UserMapAreas { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)

@@ -272,6 +272,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /families/{familyId}/city:
+    put:
+      tags:
+        - Families
+      summary: Update family city
+      description: |
+        Обновляет город для семьи. Только для пользователей с ролью parent.
+        Внимание: при изменении города все существующие пользовательские переопределения (overrides)
+        и кастомные зоны (custom areas) данной семьи будут безвозвратно удалены.
+      operationId: updateFamilyCity
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cityId
+              properties:
+                cityId:
+                  type: string
+                  description: Идентификатор нового города (например, "ekb").
+      responses:
+        "204":
+          description: City updated successfully, obsolete overrides purged.
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "403":
+          description: Forbidden (user is not a parent in the family)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Family not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
   /families/{familyId}/members:
     get:
       tags:
@@ -389,40 +446,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
-
-  /maps/areas:
+  /maps/tiles/{cityId}/{z}/{x}/{y}.pbf:
     get:
       tags:
         - Maps
-      summary: Get base risk areas by bounding box
+      summary: Get vector tile of safety zones (MVT) for a city
       description: |
-        Returns generated base map areas intersecting the requested bbox.
-        The bbox format is minLon,minLat,maxLon,maxLat in WGS84.
-      operationId: getMapAreas
+        Возвращает бинарный векторный тайл Mapbox Vector Tile (.pbf), содержащий зоны безопасности для указанного города.
+        Доступно только для масштабов (zoom) от 12 до 18.
+        Данный URL зависит только от города и версии, что позволяет кэшировать тайлы на уровне CDN для всех пользователей города.
+      operationId: getMapTile
       parameters:
-        - name: bbox
-          in: query
+        - name: cityId
+          in: path
           required: true
           schema:
             type: string
-            pattern: "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
-            example: "37.50,55.70,37.70,55.80"
-          description: WGS84 bounding box as minLon,minLat,maxLon,maxLat.
-        - name: cityId
+          description: Идентификатор города (например, "ekb").
+        - name: z
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Zoom level (12-18)
+        - name: x
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Tile X coordinate
+        - name: y
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Tile Y coordinate
+        - name: v
           in: query
           required: false
           schema:
             type: string
-          description: Optional city/batch identifier.
+          description: Версия генерации карты (кэш-бастер). Получается из эндпоинта метаданных города.
       responses:
         "200":
-          description: Base risk areas
+          description: Vector tile data (.pbf). Для пустых тайлов возвращается пустой массив байт (0 байт).
           content:
-            application/json:
+            application/vnd.mapbox-vector-tile:
               schema:
-                $ref: "#/components/schemas/MapAreaFeatureCollection"
+                type: string
+                format: binary
         "400":
-          description: Invalid bbox
+          description: Invalid parameters
           content:
             application/json:
               schema:
@@ -434,12 +508,79 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /maps/cities:
+    get:
+      tags:
+        - Maps
+      summary: Get supported map cities
+      description: Returns cities for which vector tile maps are available.
+      operationId: getMapCities
+      responses:
+        "200":
+          description: Supported cities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapCitiesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /maps/cities/{cityId}/metadata:
+    get:
+      tags:
+        - Maps
+      summary: Get city map metadata (version/bbox)
+      description: Возвращает метаданные города, включая версию последней генерации карты (generationVersion) для сброса кэша MVT на клиенте.
+      operationId: getCityMetadata
+      parameters:
+        - name: cityId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Идентификатор города.
+      responses:
+        "200":
+          description: City metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - cityId
+                  - generationVersion
+                properties:
+                  cityId:
+                    type: string
+                  generationVersion:
+                    type: string
+                    description: Таймстемп или хеш версии последней перегенерации базовой карты.
+                  bbox:
+                    type: string
+                    description: Bounding Box города в формате minLon,minLat,maxLon,maxLat.
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: City not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
   /maps/user-areas:
     get:
       tags:
         - Maps
       summary: Get family user risk areas
-      description: Returns parent-created or parent-overridden risk areas for the current user's family.
+      description: Returns raw family user map rows: base-area overrides and custom polygons.
       operationId: getUserMapAreas
       parameters:
         - name: familyId
@@ -474,21 +615,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /maps/user-areas/base-overrides:
     post:
       tags:
         - Maps
-      summary: Create a family user risk area
-      description: Creates either an override for an existing base area or a custom polygon drawn by a parent.
-      operationId: createUserMapArea
+      summary: Override risk for a generated base area
+      description: |
+        Creates or updates a family/child risk-only override for a generated base polygon.
+        Do not send geometry here; use baseAreaKey from map area properties.
+      operationId: createBaseAreaOverride
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUserMapAreaRequest"
+              $ref: "#/components/schemas/CreateBaseAreaOverrideRequest"
       responses:
         "201":
-          description: User risk area created
+          description: Base-area override created or updated
           content:
             application/json:
               schema:
@@ -507,6 +651,57 @@ paths:
                 $ref: "#/components/schemas/ProblemDetails"
         "403":
           description: User is not allowed to edit this family map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Family or base map area not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /maps/user-areas/custom:
+    post:
+      tags:
+        - Maps
+      summary: Create a custom family user risk polygon
+      description: Creates a custom polygon drawn by a parent. Custom polygons have priority over base areas and overrides.
+      operationId: createCustomUserMapArea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomUserMapAreaRequest"
+      responses:
+        "201":
+          description: Custom user risk area created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserMapAreaFeature"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequestProblemDetails"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "403":
+          description: User is not allowed to edit this family map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Family not found
           content:
             application/json:
               schema:
@@ -786,14 +981,26 @@ components:
           type: string
           format: uuid
           nullable: true
+        familyRole:
+          type: string
+          nullable: true
+          enum:
+            - Parent
+            - Child
+          description: Role of the current user within the family, null when the user has no family.
 
     CreateFamilyRequest:
       type: object
+      required:
+        - cityId
       properties:
         name:
           type: string
           nullable: true
           description: Название семьи (опционально).
+        cityId:
+          type: string
+          description: Идентификатор города семьи (например, "ekb").
 
     CreateFamilyResponse:
       type: object
@@ -909,54 +1116,52 @@ components:
         coordinates:
           description: GeoJSON coordinates.
 
-    MapAreaProperties:
+    MapCityBbox:
       type: object
       required:
-        - id
-        - risk
+        - minLon
+        - minLat
+        - maxLon
+        - maxLat
       properties:
-        id:
-          type: string
-          format: uuid
-        osmId:
-          type: integer
-          format: int64
-          nullable: true
-          description: Nullable for generated green zones.
-        risk:
-          $ref: "#/components/schemas/RiskLevel"
+        minLon:
+          type: number
+          format: double
+        minLat:
+          type: number
+          format: double
+        maxLon:
+          type: number
+          format: double
+        maxLat:
+          type: number
+          format: double
+
+    MapCity:
+      type: object
+      required:
+        - cityId
+        - name
+      properties:
         cityId:
           type: string
+          example: ekb
+        name:
+          type: string
+          example: Екатеринбург
+        bbox:
           nullable: true
+          $ref: "#/components/schemas/MapCityBbox"
 
-    MapAreaFeature:
+    MapCitiesResponse:
       type: object
       required:
-        - type
-        - geometry
-        - properties
+        - cities
       properties:
-        type:
-          type: string
-          const: Feature
-        geometry:
-          $ref: "#/components/schemas/GeoJsonGeometry"
-        properties:
-          $ref: "#/components/schemas/MapAreaProperties"
-
-    MapAreaFeatureCollection:
-      type: object
-      required:
-        - type
-        - features
-      properties:
-        type:
-          type: string
-          const: FeatureCollection
-        features:
+        cities:
           type: array
           items:
-            $ref: "#/components/schemas/MapAreaFeature"
+            $ref: "#/components/schemas/MapCity"
 
     UserMapAreaProperties:
       type: object
@@ -964,6 +1169,8 @@ components:
         - id
         - familyId
         - risk
+        - source
+        - renderPriority
       properties:
         id:
           type: string
@@ -976,17 +1183,27 @@ components:
           format: uuid
           nullable: true
           description: Null means the area applies to all children in the family.
-        baseAreaId:
+        baseAreaKey:
           type: string
-          format: uuid
           nullable: true
-          description: Null if parent drew a custom polygon.
+          description: Set for base-area overrides; null for custom polygons.
         risk:
           $ref: "#/components/schemas/RiskLevel"
+        source:
+          type: string
+          enum:
+            - override
+            - custom
+        renderPriority:
+          type: integer
+          description: 0=green, 1=red, 2=yellow, 3=custom.
         createdByUserId:
           type: string
           format: uuid
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -994,7 +1211,6 @@ components:
       type: object
       required:
         - type
-        - geometry
         - properties
       properties:
         type:
@@ -1002,6 +1218,8 @@ components:
           const: Feature
         geometry:
           $ref: "#/components/schemas/GeoJsonGeometry"
+          nullable: true
+          description: Null for base-area overrides; polygon for custom areas.
         properties:
           $ref: "#/components/schemas/UserMapAreaProperties"
 
@@ -1019,7 +1237,28 @@ components:
           items:
             $ref: "#/components/schemas/UserMapAreaFeature"
 
-    CreateUserMapAreaRequest:
+    CreateBaseAreaOverrideRequest:
+      type: object
+      required:
+        - familyId
+        - baseAreaKey
+        - risk
+      properties:
+        familyId:
+          type: string
+          format: uuid
+        childId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null means the override applies to all children in the family.
+        baseAreaKey:
+          type: string
+          description: Stable base_area_key property from the safety_zones vector tile layer.
+        risk:
+          $ref: "#/components/schemas/RiskLevel"
+
+    CreateCustomUserMapAreaRequest:
       type: object
       required:
         - familyId
@@ -1034,11 +1273,6 @@ components:
           format: uuid
           nullable: true
           description: Null means the area applies to all children in the family.
-        baseAreaId:
-          type: string
-          format: uuid
-          nullable: true
-          description: Set when overriding an existing base area.
         risk:
           $ref: "#/components/schemas/RiskLevel"
         geometry:

@@ -11,30 +11,55 @@ namespace RoadSafety_backend.Presentation.Controllers;
 [Route("api/maps")]
 [Authorize]
 public class MapsController(
-    GetMapAreasUseCase getMapAreasUseCase,
     GetUserMapAreasUseCase getUserMapAreasUseCase,
-    CreateUserMapAreaUseCase createUserMapAreaUseCase,
+    GetMapCitiesUseCase getMapCitiesUseCase,
+    GetMapTileUseCase getMapTileUseCase,
+    GetCityMetadataUseCase getCityMetadataUseCase,
+    CreateBaseAreaOverrideUseCase createBaseAreaOverrideUseCase,
+    CreateCustomUserMapAreaUseCase createCustomUserMapAreaUseCase,
     ILogger<MapsController> logger) : ControllerBase
 {
-    [HttpGet("areas")]
-    [ProducesResponseType(typeof(MapAreaFeatureCollection), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetAreas(
-        [FromQuery] string bbox,
-        [FromQuery] string? cityId,
-        CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Map areas requested. Bbox: {Bbox}, CityId: {CityId}.", bbox, cityId);
+    private const string VectorTileContentType = "application/vnd.mapbox-vector-tile";
 
-        var request = new GetMapAreasRequest(bbox, cityId);
-        var result = await getMapAreasUseCase.ExecuteAsync(request, cancellationToken);
+    [HttpGet("cities")]
+    [ProducesResponseType(typeof(MapCitiesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCities(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Supported map cities requested.");
+
+        var result = await getMapCitiesUseCase.ExecuteAsync(cancellationToken);
 
         if (!result.IsSuccess)
         {
             logger.LogWarning(
-                "Map areas request failed. Bbox: {Bbox}, CityId: {CityId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
-                bbox,
+                "Supported map cities request failed. ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        logger.LogInformation("Supported map cities returned. CityCount: {CityCount}.", result.Value.Cities.Count);
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("cities/{cityId}/metadata")]
+    [ProducesResponseType(typeof(MapCityMetadataResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCityMetadata(string cityId, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Map city metadata requested. CityId: {CityId}.", cityId);
+
+        var result = await getCityMetadataUseCase.ExecuteAsync(cityId, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Map city metadata request failed. CityId: {CityId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
                 cityId,
                 result.Error.Type,
                 result.Error.Message);
@@ -42,14 +67,41 @@ public class MapsController(
             return this.ToProblem(result.Error);
         }
 
-        logger.LogInformation(
-            "Map areas returned. Bbox: {Bbox}, CityId: {CityId}, FeatureCount: {FeatureCount}, ReturnedCoordinates: {ReturnedCoordinates}.",
-            bbox,
-            cityId,
-            result.Value.Features.Count,
-            DescribeCoordinates(result.Value.Features.Select(feature => feature.Geometry)));
-
         return Ok(result.Value);
+    }
+
+    [HttpGet("tiles/{cityId}/{z:int}/{x:int}/{y:int}.pbf")]
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any)]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, VectorTileContentType)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetTile(
+        string cityId,
+        int z,
+        int x,
+        int y,
+        [FromQuery] string? v,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Map tile requested. CityId: {CityId}, Z: {Z}, X: {X}, Y: {Y}, Version: {Version}.", cityId, z, x, y, v);
+
+        var result = await getMapTileUseCase.ExecuteAsync(cityId, z, x, y, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Map tile request failed. CityId: {CityId}, Z: {Z}, X: {X}, Y: {Y}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                cityId,
+                z,
+                x,
+                y,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        return File(result.Value, VectorTileContentType);
     }
 
     [HttpGet("user-areas")]
@@ -90,33 +142,67 @@ public class MapsController(
         return Ok(result.Value);
     }
 
-    [HttpPost("user-areas")]
+    [HttpPost("user-areas/base-overrides")]
     [ProducesResponseType(typeof(UserMapAreaFeature), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CreateUserArea(
-        [FromBody] CreateUserMapAreaRequest request,
+    public async Task<IActionResult> CreateBaseOverride(
+        [FromBody] CreateBaseAreaOverrideRequest request,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
-            "User map area creation requested. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaId: {BaseAreaId}, Risk: {Risk}, RequestedCoordinates: {RequestedCoordinates}.",
+            "Base map area override requested. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaKey: {BaseAreaKey}, Risk: {Risk}.",
             request.FamilyId,
             request.ChildId,
-            request.BaseAreaId,
-            request.Risk,
-            DescribeCoordinates(request.Geometry));
+            request.BaseAreaKey,
+            request.Risk);
 
-        var result = await createUserMapAreaUseCase.ExecuteAsync(request, cancellationToken);
+        var result = await createBaseAreaOverrideUseCase.ExecuteAsync(request, cancellationToken);
 
         if (!result.IsSuccess)
         {
             logger.LogWarning(
-                "User map area creation failed. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaId: {BaseAreaId}, Risk: {Risk}, RequestedCoordinates: {RequestedCoordinates}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                "Base map area override failed. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaKey: {BaseAreaKey}, Risk: {Risk}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
                 request.FamilyId,
                 request.ChildId,
-                request.BaseAreaId,
+                request.BaseAreaKey,
+                request.Risk,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    [HttpPost("user-areas/custom")]
+    [ProducesResponseType(typeof(UserMapAreaFeature), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateCustomArea(
+        [FromBody] CreateCustomUserMapAreaRequest request,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Custom user map area creation requested. FamilyId: {FamilyId}, ChildId: {ChildId}, Risk: {Risk}, RequestedCoordinates: {RequestedCoordinates}.",
+            request.FamilyId,
+            request.ChildId,
+            request.Risk,
+            DescribeCoordinates(request.Geometry));
+
+        var result = await createCustomUserMapAreaUseCase.ExecuteAsync(request, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Custom user map area creation failed. FamilyId: {FamilyId}, ChildId: {ChildId}, Risk: {Risk}, RequestedCoordinates: {RequestedCoordinates}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                request.FamilyId,
+                request.ChildId,
                 request.Risk,
                 DescribeCoordinates(request.Geometry),
                 result.Error.Type,
@@ -126,11 +212,10 @@ public class MapsController(
         }
 
         logger.LogInformation(
-            "User map area created. Id: {Id}, FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaId: {BaseAreaId}, Risk: {Risk}, ReturnedCoordinates: {ReturnedCoordinates}.",
+            "Custom user map area created. Id: {Id}, FamilyId: {FamilyId}, ChildId: {ChildId}, Risk: {Risk}, ReturnedCoordinates: {ReturnedCoordinates}.",
             result.Value.Properties.Id,
             result.Value.Properties.FamilyId,
             result.Value.Properties.ChildId,
-            result.Value.Properties.BaseAreaId,
             result.Value.Properties.Risk,
             DescribeCoordinates(result.Value.Geometry));
 
@@ -144,7 +229,7 @@ public class MapsController(
             : DescribeCoordinates([geometry]);
     }
 
-    private static string DescribeCoordinates(IEnumerable<GeoJsonGeometryDto> geometries)
+    private static string DescribeCoordinates(IEnumerable<GeoJsonGeometryDto?> geometries)
     {
         var geometryCount = 0;
         var ringCount = 0;
@@ -156,6 +241,9 @@ public class MapsController(
 
         foreach (var geometry in geometries)
         {
+            if (geometry is null)
+                continue;
+
             geometryCount++;
 
             foreach (var ring in geometry.Coordinates)

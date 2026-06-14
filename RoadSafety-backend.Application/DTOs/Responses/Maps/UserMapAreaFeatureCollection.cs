@@ -7,16 +7,19 @@ public sealed record UserMapAreaFeatureCollection(string Type, IReadOnlyCollecti
     public static UserMapAreaFeatureCollection Create(IReadOnlyCollection<UserMapAreaFeature> features) => new("FeatureCollection", features);
 }
 
-public sealed record UserMapAreaFeature(string Type, GeoJsonGeometryDto Geometry, UserMapAreaProperties Properties)
+public sealed record UserMapAreaFeature(string Type, GeoJsonGeometryDto? Geometry, UserMapAreaProperties Properties)
 {
-    public static UserMapAreaFeature Create(GeoJsonGeometryDto geometry, UserMapAreaProperties properties) => new("Feature", geometry, properties);
+    public static UserMapAreaFeature Create(GeoJsonGeometryDto? geometry, UserMapAreaProperties properties) => new("Feature", geometry, properties);
 }
 
 public sealed record UserMapAreaProperties(
     Guid Id,
     Guid FamilyId,
     Guid? ChildId,
-    Guid? BaseAreaId,
-    RiskLevel Risk,
+    string? BaseAreaKey,
+    string Risk,
+    string Source,
+    int RenderPriority,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

@@ -19,6 +19,11 @@ public class MapAreaConfiguration : IEntityTypeConfiguration<MapArea>
         builder.Property(area => area.OsmId)
             .HasColumnName("osm_id");
 
+        builder.Property(area => area.BaseAreaKey)
+            .HasColumnName("base_area_key")
+            .HasColumnType("varchar")
+            .IsRequired();
+
         builder.Property(area => area.Risk)
             .HasColumnName("risk")
             .HasConversion<string>()
@@ -39,6 +44,7 @@ public class MapAreaConfiguration : IEntityTypeConfiguration<MapArea>
             .HasMethod("gist");
 
         builder.HasIndex(area => area.CityId);
+        builder.HasIndex(area => area.BaseAreaKey).IsUnique();
         builder.HasIndex(area => area.Risk);
     }
 }
