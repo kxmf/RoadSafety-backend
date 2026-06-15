@@ -5,13 +5,16 @@ using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
+using RoadSafety_backend.Domain.Aggregates.NotificationAggregate;
 using RoadSafety_backend.Domain.Aggregates.SessionAggregate;
+using RoadSafety_backend.Domain.Aggregates.TrackingAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
 using RoadSafety_backend.Infrastructure.Services;
 using RoadSafety_backend.Infrastructure.Services.MapGeneration;
 using RoadSafety_backend.Infrastructure.Services.Settings;
+using RoadSafety_backend.Application.UseCases.Tracking;
 
 namespace RoadSafety_backend.Infrastructure;
 
@@ -28,6 +31,7 @@ public static class DependencyInjection
 
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
         services.Configure<MapGenerationSettings>(configuration.GetSection("MapGeneration"));
+        services.Configure<TrackingOptions>(configuration.GetSection("Tracking"));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
@@ -36,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IMapAreaRepository, MapAreaRepository>();
         services.AddScoped<IMapCityRepository, MapCityRepository>();
         services.AddScoped<IUserMapAreaRepository, UserMapAreaRepository>();
+        services.AddScoped<ITrackingRepository, TrackingRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddScoped<IPasswordService, PasswordService>();

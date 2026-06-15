@@ -5,7 +5,9 @@ using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Maps;
 
-public class GetCityMetadataUseCase(IMapAreaRepository mapAreaRepository)
+public class GetCityMetadataUseCase(
+    IMapAreaRepository mapAreaRepository,
+    IMapCityRepository mapCityRepository)
 {
     public async Task<Result<MapCityMetadataResponse>> ExecuteAsync(string cityId, CancellationToken cancellationToken)
     {
@@ -16,9 +18,26 @@ public class GetCityMetadataUseCase(IMapAreaRepository mapAreaRepository)
         if (metadata is null)
             return Result<MapCityMetadataResponse>.Failure(Error.NotFound("City map metadata not found."));
 
+        var configuredCity = (await mapCityRepository.GetSupportedCitiesAsync(cancellationToken))
+            .FirstOrDefault(city => string.Equals(city.CityId, metadata.CityId, StringComparison.OrdinalIgnoreCase));
+
+        var bbox = MergeBbox(metadata, configuredCity?.Bbox);
+
         return Result<MapCityMetadataResponse>.Success(new MapCityMetadataResponse(
             metadata.CityId,
             metadata.GenerationVersion,
-            new MapCityBboxResponse(metadata.MinLon, metadata.MinLat, metadata.MaxLon, metadata.MaxLat)));
+            bbox));
+    }
+
+    private static MapCityBboxResponse MergeBbox(MapCityMetadata metadata, MapCityBboxResponse? configuredBbox)
+    {
+        if (configuredBbox is null)
+            return new MapCityBboxResponse(metadata.MinLon, metadata.MinLat, metadata.MaxLon, metadata.MaxLat);
+
+        return new MapCityBboxResponse(
+            Math.Min(metadata.MinLon, configuredBbox.MinLon),
+            Math.Min(metadata.MinLat, configuredBbox.MinLat),
+            Math.Max(metadata.MaxLon, configuredBbox.MaxLon),
+            Math.Max(metadata.MaxLat, configuredBbox.MaxLat));
     }
 }

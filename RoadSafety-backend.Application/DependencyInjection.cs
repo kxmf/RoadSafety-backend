@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using RoadSafety_backend.Application.UseCases.Auth;
 using RoadSafety_backend.Application.UseCases.Family;
 using RoadSafety_backend.Application.UseCases.Maps;
+using RoadSafety_backend.Application.UseCases.Notifications;
+using RoadSafety_backend.Application.UseCases.Tracking;
 using RoadSafety_backend.Application.UseCases.Users;
 
 namespace RoadSafety_backend.Application;
@@ -27,6 +29,12 @@ public static class DependencyInjection
         services.AddScoped<GetCityMetadataUseCase>();
         services.AddScoped<CreateBaseAreaOverrideUseCase>();
         services.AddScoped<CreateCustomUserMapAreaUseCase>();
+        services.AddScoped<SubmitLocationUseCase>();
+        services.AddScoped<GetChildLocationUseCase>();
+        services.AddScoped<GetChildrenLocationsUseCase>();
+        services.AddScoped<GetChildStatsUseCase>();
+        services.AddScoped<GetNotificationsUseCase>();
+        services.AddScoped<MarkNotificationReadUseCase>();
 
         return services;
     }
