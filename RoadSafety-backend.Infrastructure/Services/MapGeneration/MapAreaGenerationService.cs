@@ -107,7 +107,6 @@ internal sealed class MapAreaGenerationService(
         var greenAreas = GenerateGreenAreas(
             city.CityId,
             cityBounds,
-            roadSegments,
             redAreas.Select(area => area.Polygon).ToList(),
             yellowAreas);
 
@@ -270,84 +269,71 @@ internal sealed class MapAreaGenerationService(
     private List<Polygon> GenerateGreenAreas(
         string cityId,
         Polygon cityBounds,
-        List<RoadSegment> roadSegments,
         List<Polygon> redAreas,
         List<Polygon> yellowAreas)
     {
         var stopwatch = Stopwatch.StartNew();
+        var greenAreas = new List<Polygon>();
+        var envelope = cityBounds.EnvelopeInternal;
         var unsafeAreas = redAreas.Concat(yellowAreas).Cast<Geometry>().Where(area => !area.IsEmpty).ToArray();
         var unsafeIndex = BuildSpatialIndex(unsafeAreas.OfType<Polygon>());
+        var columnCount = (int)Math.Ceiling((envelope.MaxX - envelope.MinX) / _settings.GridCellSizeMeters);
+        var rowCount = (int)Math.Ceiling((envelope.MaxY - envelope.MinY) / _settings.GridCellSizeMeters);
+        var totalCells = Math.Max(1, columnCount * rowCount);
+        var progressStep = Math.Max(1, totalCells / 10);
 
         logger.LogInformation(
-            "Starting green map area generation for city {CityId}. RoadSegments: {RoadSegmentCount}, UnsafeAreaCount: {UnsafeAreaCount}, GreenRoadSideBandMeters: {GreenRoadSideBandMeters}.",
+            "Starting green map area generation for city {CityId}. TotalCells: {TotalCells}, Columns: {ColumnCount}, Rows: {RowCount}, UnsafeAreaCount: {UnsafeAreaCount}.",
             cityId,
-            roadSegments.Count,
-            unsafeAreas.Length,
-            _settings.GreenRoadSideBandMeters);
+            totalCells,
+            columnCount,
+            rowCount,
+            unsafeAreas.Length);
 
-        var greenAreas = roadSegments
-            .AsParallel()
-            .AsOrdered()
-            .SelectMany(roadSegment => CreateGreenSideBands(roadSegment)
-                .SelectMany(sideBand => ClipGreenBand(sideBand, cityBounds, unsafeIndex)))
-            .ToList();
+        var processedCells = 0;
+
+        for (var x = envelope.MinX; x < envelope.MaxX; x += _settings.GridCellSizeMeters)
+        {
+            for (var y = envelope.MinY; y < envelope.MaxY; y += _settings.GridCellSizeMeters)
+            {
+                var cell = WebMercatorProjection.CreateWebMercatorRectangle(
+                    x,
+                    y,
+                    Math.Min(x + _settings.GridCellSizeMeters, envelope.MaxX),
+                    Math.Min(y + _settings.GridCellSizeMeters, envelope.MaxY));
+
+                var workCell = WebMercatorProjection.CreateWebMercatorRectangle(
+                    Math.Max(x - _settings.GridMarginMeters, envelope.MinX),
+                    Math.Max(y - _settings.GridMarginMeters, envelope.MinY),
+                    Math.Min(x + _settings.GridCellSizeMeters + _settings.GridMarginMeters, envelope.MaxX),
+                    Math.Min(y + _settings.GridCellSizeMeters + _settings.GridMarginMeters, envelope.MaxY));
+
+                var cityCell = IntersectAreas(cityBounds, cell);
+                var green = DifferenceIndexedAreas(cityCell, workCell, unsafeIndex);
+                greenAreas.AddRange(ExtractPolygons(green));
+
+                processedCells++;
+                if (processedCells % progressStep == 0 || processedCells == totalCells)
+                    logger.LogInformation(
+                        "Green map area generation progress for city {CityId}. ProcessedCells: {ProcessedCells}/{TotalCells}, Percent: {Percent:F1}, GreenAreas: {GreenAreaCount}, ElapsedMs: {ElapsedMs}.",
+                        cityId,
+                        processedCells,
+                        totalCells,
+                        processedCells * 100.0 / totalCells,
+                        greenAreas.Count,
+                        stopwatch.ElapsedMilliseconds);
+            }
+        }
 
         logger.LogInformation(
-            "Finished green map area generation for city {CityId}. ProcessedRoadSegments: {ProcessedRoadSegments}/{RoadSegmentCount}, GreenAreas: {GreenAreaCount}, ElapsedMs: {ElapsedMs}.",
+            "Finished green map area generation for city {CityId}. ProcessedCells: {ProcessedCells}/{TotalCells}, GreenAreas: {GreenAreaCount}, ElapsedMs: {ElapsedMs}.",
             cityId,
-            roadSegments.Count,
-            roadSegments.Count,
+            processedCells,
+            totalCells,
             greenAreas.Count,
             stopwatch.ElapsedMilliseconds);
 
         return greenAreas;
-    }
-
-    private List<Polygon> CreateGreenSideBands(RoadSegment roadSegment)
-    {
-        var coordinates = roadSegment.Geometry.Coordinates;
-        if (coordinates.Length < 2)
-            return [];
-
-        var start = coordinates[0];
-        var end = coordinates[^1];
-        var dx = end.X - start.X;
-        var dy = end.Y - start.Y;
-        var length = Math.Sqrt(dx * dx + dy * dy);
-
-        if (length == 0)
-            return [];
-
-        var normalX = -dy / length;
-        var normalY = dx / length;
-        var innerDistance = roadSegment.WidthMeters / 2.0;
-        var outerDistance = innerDistance + _settings.GreenRoadSideBandMeters;
-
-        return [
-            CreateSideBandPolygon(roadSegment.Geometry.Factory, start, end, normalX, normalY, innerDistance, outerDistance),
-            CreateSideBandPolygon(roadSegment.Geometry.Factory, start, end, -normalX, -normalY, innerDistance, outerDistance)
-        ];
-    }
-
-    private List<Polygon> ClipGreenBand(Polygon sideBand, Polygon cityBounds, STRtree<Polygon> unsafeIndex)
-    {
-        var insideCity = IntersectAreas(sideBand, cityBounds);
-        if (insideCity.IsEmpty)
-            return [];
-
-        var nearbyUnsafeAreas = unsafeIndex
-            .Query(sideBand.EnvelopeInternal)
-            .Where(area => area.Intersects(sideBand))
-            .Cast<Geometry>()
-            .ToArray();
-
-        var safeGeometry = nearbyUnsafeAreas.Length == 0
-            ? insideCity
-            : DifferenceAreas(insideCity, UnionAreaGeometry(nearbyUnsafeAreas));
-
-        return ExtractPolygons(safeGeometry)
-            .Where(IsConvexPolygon)
-            .ToList();
     }
 
     private static STRtree<Polygon> BuildSpatialIndex(IEnumerable<Polygon> polygons)
@@ -361,64 +347,20 @@ internal sealed class MapAreaGenerationService(
         return index;
     }
 
-    private static Polygon CreateSideBandPolygon(
-        GeometryFactory factory,
-        Coordinate start,
-        Coordinate end,
-        double normalX,
-        double normalY,
-        double innerDistance,
-        double outerDistance)
+    private Geometry DifferenceIndexedAreas(Geometry source, Geometry queryArea, STRtree<Polygon> subtractIndex)
     {
-        return factory.CreatePolygon([
-            Offset(start, normalX, normalY, innerDistance),
-            Offset(end, normalX, normalY, innerDistance),
-            Offset(end, normalX, normalY, outerDistance),
-            Offset(start, normalX, normalY, outerDistance),
-            Offset(start, normalX, normalY, innerDistance)
-        ]);
-    }
+        if (source.IsEmpty)
+            return source;
 
-    private static Coordinate Offset(Coordinate coordinate, double normalX, double normalY, double distance)
-    {
-        return new Coordinate(coordinate.X + normalX * distance, coordinate.Y + normalY * distance);
-    }
+        var nearbyAreas = subtractIndex
+            .Query(queryArea.EnvelopeInternal)
+            .Where(area => area.Intersects(queryArea))
+            .Cast<Geometry>()
+            .ToArray();
 
-    private static bool IsConvexPolygon(Polygon polygon)
-    {
-        var coordinates = polygon.ExteriorRing.Coordinates;
-        if (polygon.NumInteriorRings > 0 || coordinates.Length < 4)
-            return false;
-
-        var sign = 0;
-        for (var i = 0; i < coordinates.Length - 1; i++)
-        {
-            var previous = coordinates[(i + coordinates.Length - 2) % (coordinates.Length - 1)];
-            var current = coordinates[i];
-            var next = coordinates[(i + 1) % (coordinates.Length - 1)];
-            var cross = Cross(previous, current, next);
-
-            if (Math.Abs(cross) < 1e-9)
-                continue;
-
-            var currentSign = cross > 0 ? 1 : -1;
-            if (sign == 0)
-                sign = currentSign;
-            else if (sign != currentSign)
-                return false;
-        }
-
-        return true;
-    }
-
-    private static double Cross(Coordinate previous, Coordinate current, Coordinate next)
-    {
-        var firstX = current.X - previous.X;
-        var firstY = current.Y - previous.Y;
-        var secondX = next.X - current.X;
-        var secondY = next.Y - current.Y;
-
-        return firstX * secondY - firstY * secondX;
+        return nearbyAreas.Length == 0
+            ? source
+            : DifferenceAreas(source, UnionAreaGeometry(nearbyAreas));
     }
 
     private List<GeneratedPolygon> SubtractAreas(List<GeneratedPolygon> sourceAreas, List<Polygon> areasToSubtract)
