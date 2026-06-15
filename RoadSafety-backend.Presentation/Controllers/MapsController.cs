@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadSafety_backend.Application.DTOs.Requests.Maps;
@@ -20,10 +21,14 @@ public class MapsController(
     ILogger<MapsController> logger) : ControllerBase
 {
     private const string VectorTileContentType = "application/vnd.mapbox-vector-tile";
+    private static readonly byte[] EmptySafetyZonesVectorTile =
+    [
+        0x1A, 0x13, 0x0A, 0x0C, 0x73, 0x61, 0x66, 0x65, 0x74, 0x79, 0x5F, 0x7A, 0x6F, 0x6E, 0x65, 0x73, 0x28, 0x80, 0x20, 0x78, 0x02
+    ];
 
     [HttpGet("cities")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(MapCitiesResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetCities(CancellationToken cancellationToken)
     {
         logger.LogInformation("Supported map cities requested.");
@@ -46,9 +51,9 @@ public class MapsController(
     }
 
     [HttpGet("cities/{cityId}/metadata")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(MapCityMetadataResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCityMetadata(string cityId, CancellationToken cancellationToken)
     {
@@ -71,10 +76,10 @@ public class MapsController(
     }
 
     [HttpGet("tiles/{cityId}/{z:int}/{x:int}/{y:int}.pbf")]
+    [AllowAnonymous]
     [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any)]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, VectorTileContentType)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetTile(
         string cityId,
         int z,
@@ -85,6 +90,7 @@ public class MapsController(
     {
         logger.LogInformation("Map tile requested. CityId: {CityId}, Z: {Z}, X: {X}, Y: {Y}, Version: {Version}.", cityId, z, x, y, v);
 
+        var stopwatch = Stopwatch.StartNew();
         var result = await getMapTileUseCase.ExecuteAsync(cityId, z, x, y, cancellationToken);
 
         if (!result.IsSuccess)
@@ -101,7 +107,19 @@ public class MapsController(
             return this.ToProblem(result.Error);
         }
 
-        return File(result.Value, VectorTileContentType);
+        var tile = result.Value.Length == 0 ? EmptySafetyZonesVectorTile : result.Value;
+
+        logger.LogInformation(
+            "Map tile returned. CityId: {CityId}, Z: {Z}, X: {X}, Y: {Y}, Version: {Version}, SizeBytes: {SizeBytes}, ElapsedMs: {ElapsedMs}.",
+            cityId,
+            z,
+            x,
+            y,
+            v,
+            tile.Length,
+            stopwatch.ElapsedMilliseconds);
+
+        return File(tile, VectorTileContentType);
     }
 
     [HttpGet("user-areas")]

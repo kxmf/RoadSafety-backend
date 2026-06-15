@@ -1,20 +1,14 @@
 using RoadSafety_backend.Application.DTOs.Responses.Maps;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
-using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
 
 namespace RoadSafety_backend.Application.UseCases.Maps;
 
-public class GetCityMetadataUseCase(
-    IMapAreaRepository mapAreaRepository,
-    ICurrentUserAccessor userAccessor)
+public class GetCityMetadataUseCase(IMapAreaRepository mapAreaRepository)
 {
     public async Task<Result<MapCityMetadataResponse>> ExecuteAsync(string cityId, CancellationToken cancellationToken)
     {
-        if (!userAccessor.IsAuthenticated || userAccessor.UserId is null || userAccessor.UserId == UserId.Empty)
-            return Result<MapCityMetadataResponse>.Failure(Error.Unauthorized("User not authenticated."));
-
         if (string.IsNullOrWhiteSpace(cityId))
             return Result<MapCityMetadataResponse>.Failure(Error.Validation("cityId is required."));
 

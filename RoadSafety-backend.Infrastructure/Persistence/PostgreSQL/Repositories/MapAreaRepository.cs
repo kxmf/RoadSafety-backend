@@ -17,26 +17,36 @@ public sealed class MapAreaRepository(ApplicationDbContext dbContext) : IMapArea
 
         command.CommandText = """
             WITH bounds AS (
-                SELECT ST_TileEnvelope(@z, @x, @y) AS geom
+                SELECT
+                    ST_TileEnvelope(@z, @x, @y) AS geom_3857,
+                    ST_Transform(ST_TileEnvelope(@z, @x, @y), 4326) AS geom_4326
             ),
             mvtgeom AS (
                 SELECT
-                    id,
                     base_area_key AS "baseAreaKey",
-                    risk,
-                    city_id AS "cityId",
+                    lower(risk) AS risk,
                     ST_AsMVTGeom(
-                        ST_Transform(map_areas.geom, 3857),
-                        bounds.geom,
+                        ST_SimplifyPreserveTopology(
+                            ST_Transform(map_areas.geom, 3857),
+                            CASE
+                                WHEN @z <= 12 THEN 20.0
+                                WHEN @z = 13 THEN 10.0
+                                WHEN @z = 14 THEN 5.0
+                                WHEN @z = 15 THEN 2.0
+                                ELSE 0.5
+                            END),
+                        bounds.geom_3857,
                         4096,
                         64,
                         true) AS geom
                 FROM map_areas, bounds
                 WHERE city_id = @cityId
-                  AND ST_Intersects(ST_Transform(map_areas.geom, 3857), bounds.geom)
+                  AND geom && bounds.geom_4326
+                  AND ST_Intersects(geom, bounds.geom_4326)
             )
             SELECT COALESCE(ST_AsMVT(mvtgeom, 'safety_zones', 4096, 'geom'), '\x'::bytea)
-            FROM mvtgeom;
+            FROM mvtgeom
+            WHERE geom IS NOT NULL;
             """;
 
         command.Parameters.Add(new NpgsqlParameter<int>("z", z));
@@ -80,11 +90,10 @@ public sealed class MapAreaRepository(ApplicationDbContext dbContext) : IMapArea
 
     public async Task ReplaceCityAreasAsync(string cityId, IReadOnlyCollection<MapArea> areas, CancellationToken cancellationToken)
     {
-        var existingAreas = await _dbContext.MapAreas
+        await _dbContext.MapAreas
             .Where(area => area.CityId == cityId)
-            .ToListAsync(cancellationToken);
+            .ExecuteDeleteAsync(cancellationToken);
 
-        _dbContext.MapAreas.RemoveRange(existingAreas);
         await _dbContext.MapAreas.AddRangeAsync(areas, cancellationToken);
     }
 

@@ -11,6 +11,9 @@ public sealed class MapGenerationSettings
     public int GridMarginMeters { get; init; } = 50;
     public double MinimumPolygonAreaSquareMeters { get; init; } = 10;
     public double CrossingBufferMeters { get; init; } = 12;
+    public double RoadTurnSplitAngleDegrees { get; init; } = 35;
+    public double MaxRoadSegmentLengthMeters { get; init; } = 80;
+    public double GreenRoadSideBandMeters { get; init; } = 25;
     public List<MapGenerationCitySettings> Cities { get; init; } = [];
 }
 
