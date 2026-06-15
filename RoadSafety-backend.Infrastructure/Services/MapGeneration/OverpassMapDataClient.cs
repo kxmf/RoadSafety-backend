@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using NetTopologySuite.Geometries;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetTopologySuite.Geometries;
 
 namespace RoadSafety_backend.Infrastructure.Services.MapGeneration;
 

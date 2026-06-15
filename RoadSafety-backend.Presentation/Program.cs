@@ -1,11 +1,12 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using RoadSafety_backend.Application;
 using RoadSafety_backend.Infrastructure;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 using RoadSafety_backend.Presentation;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using Scalar.AspNetCore;
 
 LoadDotEnv();
 
@@ -27,8 +28,6 @@ try
             .Enrich.FromLogContext();
     });
 
-    // Add services to the container.
-
     builder.Services.AddApplication()
                     .AddInfrastructure(builder.Configuration)
                     .AddPresentation(builder.Configuration);
@@ -43,7 +42,6 @@ try
         await dbContext.Database.MigrateAsync();
     }
 
-    // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
@@ -51,6 +49,11 @@ try
     }
 
     app.UseHttpsRedirection();
+    
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 
     app.UseSerilogRequestLogging(options =>
     {

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using NetTopologySuite.Geometries;
+using Npgsql;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 
