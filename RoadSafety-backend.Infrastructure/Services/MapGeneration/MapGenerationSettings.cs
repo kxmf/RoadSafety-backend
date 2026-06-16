@@ -7,6 +7,9 @@ public sealed class MapGenerationSettings
     public bool RunOnStartup { get; init; }
     public string OverpassUrl { get; init; } = "https://overpass-api.de/api/interpreter";
     public string? OverpassContactEmail { get; init; }
+    public double OverpassMaxBboxSideDegrees { get; init; } = 0.08;
+    public int OverpassRequestDelayMs { get; init; } = 1500;
+    public int OverpassMaxRetries { get; init; } = 3;
     public int GridCellSizeMeters { get; init; } = 1000;
     public int GridMarginMeters { get; init; } = 50;
     public double MinimumPolygonAreaSquareMeters { get; init; } = 10;

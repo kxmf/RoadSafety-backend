@@ -9,6 +9,7 @@ using NetTopologySuite.Index.Strtree;
 using NetTopologySuite.Operation.Buffer;
 using NetTopologySuite.Operation.Overlay;
 using NetTopologySuite.Operation.OverlayNG;
+using NetTopologySuite.Precision;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
 
@@ -51,10 +52,12 @@ internal sealed class MapAreaGenerationService(
             areas.Count(area => area.Risk == RiskLevel.Yellow),
             areas.Count(area => area.Risk == RiskLevel.Green));
 
+        var generationVersion = DateTimeOffset.UtcNow;
+
         await mapAreaRepository.ReplaceCityAreasAsync(city.CityId, areas, cancellationToken);
         await mapAreaRepository.UpsertCityMetadataAsync(
             city.CityId,
-            DateTimeOffset.UtcNow,
+            generationVersion,
             city.MinLon,
             city.MinLat,
             city.MaxLon,
@@ -64,8 +67,10 @@ internal sealed class MapAreaGenerationService(
         var savedChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Saved generated map areas for city {CityId}. SavedChanges: {SavedChanges}.",
+            "Saved generated map areas and metadata for city {CityId}. GenerationVersion: {GenerationVersion}, Bbox: {Bbox}, SavedChanges: {SavedChanges}.",
             city.CityId,
+            generationVersion,
+            DescribeBbox(city),
             savedChanges);
     }
 
@@ -149,7 +154,8 @@ internal sealed class MapAreaGenerationService(
             .SelectMany(segment =>
             {
                 var bufferParameters = new BufferParameters { EndCapStyle = EndCapStyle.Round };
-                var buffered = IntersectAreas(segment.Geometry.Buffer(segment.WidthMeters / 2.0, bufferParameters), cityBounds);
+                var roadBuffer = SafeBuffer(segment.Geometry, segment.WidthMeters / 2.0, bufferParameters, "road", segment.OsmId);
+                var buffered = IntersectAreas(roadBuffer, cityBounds);
                 return ExtractPolygons(buffered).Select(polygon => new GeneratedPolygon(polygon, segment.OsmId));
             })
             .ToList();
@@ -251,13 +257,16 @@ internal sealed class MapAreaGenerationService(
         var geometries = new List<Geometry>();
 
         foreach (var crossing in crossingWays)
-            geometries.Add(WebMercatorProjection.ToWebMercator(crossing.Geometry).Buffer(_settings.CrossingBufferMeters));
+        {
+            var geometry = WebMercatorProjection.ToWebMercator(crossing.Geometry);
+            geometries.Add(SafeBuffer(geometry, _settings.CrossingBufferMeters, null, "crossing-way", crossing.Id));
+        }
 
         foreach (var node in crossingNodes)
         {
             var coordinate = WebMercatorProjection.ToWebMercator(node.Geometry.Coordinate);
             var point = new GeometryFactory(new PrecisionModel(), 3857).CreatePoint(coordinate);
-            geometries.Add(point.Buffer(_settings.CrossingBufferMeters));
+            geometries.Add(SafeBuffer(point, _settings.CrossingBufferMeters, null, "crossing-node", node.Id));
         }
 
         return UnionPolygons(geometries)
@@ -354,13 +363,13 @@ internal sealed class MapAreaGenerationService(
 
         var nearbyAreas = subtractIndex
             .Query(queryArea.EnvelopeInternal)
-            .Where(area => area.Intersects(queryArea))
+            .Where(area => SafeIntersects(area, queryArea))
             .Cast<Geometry>()
             .ToArray();
 
         return nearbyAreas.Length == 0
             ? source
-            : DifferenceAreas(source, UnionAreaGeometry(nearbyAreas));
+            : DifferenceAreas(source, UnionAreaGeometry(nearbyAreas), OverlayFailureFallback.Empty);
     }
 
     private List<GeneratedPolygon> SubtractAreas(List<GeneratedPolygon> sourceAreas, List<Polygon> areasToSubtract)
@@ -377,13 +386,13 @@ internal sealed class MapAreaGenerationService(
             {
                 var nearbyAreas = subtractIndex
                     .Query(source.Polygon.EnvelopeInternal)
-                    .Where(area => area.Intersects(source.Polygon))
+                    .Where(area => SafeIntersects(area, source.Polygon))
                     .Cast<Geometry>()
                     .ToArray();
 
                 var geometry = nearbyAreas.Length == 0
                     ? source.Polygon
-                    : DifferenceAreas(source.Polygon, UnionAreaGeometry(nearbyAreas));
+                    : DifferenceAreas(source.Polygon, UnionAreaGeometry(nearbyAreas), OverlayFailureFallback.Left);
 
                 return ExtractPolygons(geometry)
                     .Select(polygon => new GeneratedPolygon(polygon, source.OsmId));
@@ -418,29 +427,147 @@ internal sealed class MapAreaGenerationService(
         if (left.IsEmpty || right.IsEmpty)
             return left.Factory.CreateGeometryCollection();
 
-        try
-        {
-            return ExtractAreaGeometry(OverlayNGRobust.Overlay(left, right, SpatialFunction.Intersection));
-        }
-        catch (TopologyException)
-        {
-            return ExtractAreaGeometry(OverlayNGRobust.Overlay(left.Buffer(0), right.Buffer(0), SpatialFunction.Intersection));
-        }
+        return SafeOverlay(left, right, SpatialFunction.Intersection, OverlayFailureFallback.Empty);
     }
 
-    private Geometry DifferenceAreas(Geometry left, Geometry right)
+    private Geometry DifferenceAreas(Geometry left, Geometry right, OverlayFailureFallback failureFallback)
     {
         var polygonalRight = ExtractAreaGeometry(right);
         if (left.IsEmpty || polygonalRight.IsEmpty)
             return ExtractAreaGeometry(left);
 
+        return SafeOverlay(left, polygonalRight, SpatialFunction.Difference, failureFallback);
+    }
+
+    private bool SafeIntersects(Geometry left, Geometry right)
+    {
+        if (!left.EnvelopeInternal.Intersects(right.EnvelopeInternal))
+            return false;
+
         try
         {
-            return ExtractAreaGeometry(OverlayNGRobust.Overlay(left, polygonalRight, SpatialFunction.Difference));
+            return left.Intersects(right);
         }
-        catch (TopologyException)
+        catch (TopologyException exception)
         {
-            return ExtractAreaGeometry(OverlayNGRobust.Overlay(left.Buffer(0), polygonalRight.Buffer(0), SpatialFunction.Difference));
+            logger.LogWarning(
+                exception,
+                "Map geometry intersects predicate failed. Retrying with robust intersection.");
+        }
+
+        try
+        {
+            return !OverlayNGRobust.Overlay(left, right, SpatialFunction.Intersection).IsEmpty;
+        }
+        catch (TopologyException robustException)
+        {
+            logger.LogWarning(
+                robustException,
+                "Map geometry robust intersection predicate failed. Retrying with reduced precision.");
+        }
+
+        try
+        {
+            var reducedLeft = ReducePrecision(left);
+            var reducedRight = ReducePrecision(right);
+            return !OverlayNGRobust.Overlay(
+                reducedLeft.Buffer(0),
+                reducedRight.Buffer(0),
+                SpatialFunction.Intersection).IsEmpty;
+        }
+        catch (TopologyException reducedException)
+        {
+            logger.LogWarning(
+                reducedException,
+                "Map geometry intersects predicate failed after reduced precision. Treating as intersecting.");
+
+            return true;
+        }
+    }
+
+    private Geometry SafeOverlay(
+        Geometry left,
+        Geometry right,
+        SpatialFunction operation,
+        OverlayFailureFallback failureFallback)
+    {
+        try
+        {
+            return ExtractAreaGeometry(OverlayNGRobust.Overlay(left, right, operation));
+        }
+        catch (TopologyException exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Map geometry overlay failed. Operation: {Operation}. Retrying with normalized geometries.",
+                operation);
+
+            try
+            {
+                return ExtractAreaGeometry(OverlayNGRobust.Overlay(left.Buffer(0), right.Buffer(0), operation));
+            }
+            catch (TopologyException bufferException)
+            {
+                logger.LogWarning(
+                    bufferException,
+                    "Map geometry overlay failed after normalization. Operation: {Operation}. Retrying with reduced precision.",
+                    operation);
+            }
+        }
+
+        try
+        {
+            var reducedLeft = ReducePrecision(left);
+            var reducedRight = ReducePrecision(right);
+            return ExtractAreaGeometry(OverlayNGRobust.Overlay(reducedLeft.Buffer(0), reducedRight.Buffer(0), operation));
+        }
+        catch (TopologyException reducedException)
+        {
+            logger.LogWarning(
+                reducedException,
+                "Map geometry overlay failed after reduced precision. Operation: {Operation}. Falling back to {Fallback}.",
+                operation,
+                failureFallback);
+
+            return failureFallback == OverlayFailureFallback.Left
+                ? ExtractAreaGeometry(left)
+                : CreateEmptyAreaGeometry();
+        }
+    }
+
+    private Geometry SafeBuffer(Geometry geometry, double distance, BufferParameters? parameters, string source, long? osmId)
+    {
+        try
+        {
+            return parameters is null
+                ? geometry.Buffer(distance)
+                : geometry.Buffer(distance, parameters);
+        }
+        catch (TopologyException exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Buffer failed for generated map geometry. Source: {Source}, OsmId: {OsmId}. Retrying with reduced precision.",
+                source,
+                osmId);
+        }
+
+        var reduced = ReducePrecision(geometry);
+        try
+        {
+            return parameters is null
+                ? reduced.Buffer(distance)
+                : reduced.Buffer(distance, parameters);
+        }
+        catch (TopologyException exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Reduced-precision buffer failed for generated map geometry. Source: {Source}, OsmId: {OsmId}. Skipping geometry.",
+                source,
+                osmId);
+
+            return CreateEmptyAreaGeometry();
         }
     }
 
@@ -464,16 +591,54 @@ internal sealed class MapAreaGenerationService(
         return GeometryFactory.Default.CreateGeometryCollection();
     }
 
-    private static Geometry UnionGeometries(IReadOnlyCollection<Geometry> geometries)
+    private Geometry UnionGeometries(IReadOnlyCollection<Geometry> geometries)
     {
+        var items = geometries.Where(geometry => !geometry.IsEmpty).ToArray();
+        if (items.Length == 0)
+            return CreateEmptyAreaGeometry();
+
         try
         {
-            return OverlayNGRobust.Union(geometries);
+            return OverlayNGRobust.Union(items);
         }
-        catch (TopologyException)
+        catch (TopologyException exception)
         {
-            return OverlayNGRobust.Union(geometries.Select(geometry => geometry.Buffer(0)).ToArray());
+            logger.LogWarning(
+                exception,
+                "Map geometry union failed. GeometryCount: {GeometryCount}. Retrying with normalized geometries.",
+                items.Length);
         }
+
+        try
+        {
+            return OverlayNGRobust.Union(items.Select(geometry => geometry.Buffer(0)).ToArray());
+        }
+        catch (TopologyException bufferException)
+        {
+            logger.LogWarning(
+                bufferException,
+                "Map geometry union failed after normalization. GeometryCount: {GeometryCount}. Retrying with reduced precision.",
+                items.Length);
+        }
+
+        try
+        {
+            return OverlayNGRobust.Union(items.Select(geometry => ReducePrecision(geometry).Buffer(0)).ToArray());
+        }
+        catch (TopologyException reducedException)
+        {
+            logger.LogWarning(
+                reducedException,
+                "Map geometry union failed after reduced precision. GeometryCount: {GeometryCount}. Keeping geometries split.",
+                items.Length);
+
+            return items[0].Factory.CreateGeometryCollection(items);
+        }
+    }
+
+    private static Geometry ReducePrecision(Geometry geometry)
+    {
+        return GeometryPrecisionReducer.Reduce(geometry, new PrecisionModel(1000));
     }
 
     private List<Polygon> ExtractPolygons(Geometry geometry)
@@ -542,4 +707,9 @@ internal sealed class MapAreaGenerationService(
 
     private sealed record GeneratedPolygon(Polygon Polygon, long? OsmId);
     private sealed record RoadSegment(LineString Geometry, long OsmId, double WidthMeters);
+    private enum OverlayFailureFallback
+    {
+        Empty,
+        Left
+    }
 }

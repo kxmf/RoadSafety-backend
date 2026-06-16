@@ -71,6 +71,14 @@ public sealed class MapAreaRepository(ApplicationDbContext dbContext) : IMapArea
         }
     }
 
+    public async Task<List<MapArea>> GetByCityAsync(string cityId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.MapAreas
+            .AsNoTracking()
+            .Where(area => area.CityId == cityId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<MapCityMetadata?> GetCityMetadataAsync(string cityId, CancellationToken cancellationToken)
     {
         return await _dbContext.MapCityMetadata
@@ -90,10 +98,11 @@ public sealed class MapAreaRepository(ApplicationDbContext dbContext) : IMapArea
 
     public async Task ReplaceCityAreasAsync(string cityId, IReadOnlyCollection<MapArea> areas, CancellationToken cancellationToken)
     {
-        await _dbContext.MapAreas
+        var existingAreas = await _dbContext.MapAreas
             .Where(area => area.CityId == cityId)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
+        _dbContext.MapAreas.RemoveRange(existingAreas);
         await _dbContext.MapAreas.AddRangeAsync(areas, cancellationToken);
     }
 

@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<GetMapCitiesUseCase>();
         services.AddScoped<GetMapTileUseCase>();
         services.AddScoped<GetCityMetadataUseCase>();
+        services.AddScoped<GetAlertZonesUseCase>();
         services.AddScoped<CreateBaseAreaOverrideUseCase>();
         services.AddScoped<CreateCustomUserMapAreaUseCase>();
         services.AddScoped<SubmitLocationUseCase>();

@@ -16,6 +16,7 @@ public class MapsController(
     GetMapCitiesUseCase getMapCitiesUseCase,
     GetMapTileUseCase getMapTileUseCase,
     GetCityMetadataUseCase getCityMetadataUseCase,
+    GetAlertZonesUseCase getAlertZonesUseCase,
     CreateBaseAreaOverrideUseCase createBaseAreaOverrideUseCase,
     CreateCustomUserMapAreaUseCase createCustomUserMapAreaUseCase,
     ILogger<MapsController> logger) : ControllerBase
@@ -156,6 +157,50 @@ public class MapsController(
             childId,
             result.Value.Features.Count,
             DescribeCoordinates(result.Value.Features.Select(feature => feature.Geometry)));
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("alert-zones")]
+    [ProducesResponseType(typeof(AlertZonesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAlertZones(
+        [FromQuery] string cityId,
+        [FromQuery] Guid familyId,
+        [FromQuery] Guid? childId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Alert zones requested. CityId: {CityId}, FamilyId: {FamilyId}, ChildId: {ChildId}.",
+            cityId,
+            familyId,
+            childId);
+
+        var request = new GetAlertZonesRequest(cityId, familyId, childId);
+        var result = await getAlertZonesUseCase.ExecuteAsync(request, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Alert zones request failed. CityId: {CityId}, FamilyId: {FamilyId}, ChildId: {ChildId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                cityId,
+                familyId,
+                childId,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        logger.LogInformation(
+            "Alert zones returned. CityId: {CityId}, FamilyId: {FamilyId}, ChildId: {ChildId}, ZoneCount: {ZoneCount}.",
+            cityId,
+            familyId,
+            childId,
+            result.Value.Zones.Count);
 
         return Ok(result.Value);
     }

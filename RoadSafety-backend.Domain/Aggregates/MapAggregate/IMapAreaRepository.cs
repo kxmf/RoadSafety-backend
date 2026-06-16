@@ -3,6 +3,7 @@ namespace RoadSafety_backend.Domain.Aggregates.MapAggregate;
 public interface IMapAreaRepository
 {
     Task<byte[]> GetVectorTileAsync(string cityId, int z, int x, int y, CancellationToken cancellationToken);
+    Task<List<MapArea>> GetByCityAsync(string cityId, CancellationToken cancellationToken);
     Task<MapCityMetadata?> GetCityMetadataAsync(string cityId, CancellationToken cancellationToken);
     Task<bool> ExistsAsync(MapAreaId id, CancellationToken cancellationToken);
     Task<bool> ExistsByBaseAreaKeyAsync(string baseAreaKey, CancellationToken cancellationToken);
