@@ -80,24 +80,33 @@ internal sealed class MapAreaGenerationService(
         var roads = ways.Where(w => OsmRoadClassifier.IsRoad(w.Tags)).ToList();
         var crossings = ways.Where(w => OsmRoadClassifier.IsCrossing(w.Tags)).ToList();
         var pedestrianPaths = ways.Where(w => OsmRoadClassifier.IsPedestrianPathToKeep(w.Tags)).ToList();
+        var largeRoads = roads.Where(w => !OsmRoadClassifier.IsSmallRoad(w.Tags)).ToList();
+        var smallRoads = roads.Where(w => OsmRoadClassifier.IsSmallRoad(w.Tags)).ToList();
 
         crossings.AddRange(pedestrianPaths.Where(w => OsmRoadClassifier.IsCrossing(w.Tags)));
 
         logger.LogInformation(
-            "Classified OSM data for city {CityId}. RoadWays: {RoadWayCount}, CrossingWays: {CrossingWayCount}, PedestrianPathsToKeep: {PedestrianPathCount}, CrossingNodes: {CrossingNodeCount}.",
+            "Classified OSM data for city {CityId}. RoadWays: {RoadWayCount}, LargeRoadWays: {LargeRoadWayCount}, SmallRoadWays: {SmallRoadWayCount}, CrossingWays: {CrossingWayCount}, PedestrianPathsToKeep: {PedestrianPathCount}, CrossingNodes: {CrossingNodeCount}.",
             city.CityId,
             roads.Count,
+            largeRoads.Count,
+            smallRoads.Count,
             crossings.Count,
             pedestrianPaths.Count,
             nodes.Count);
 
-        var roadSegments = GenerateRoadSegments(roads);
-        var redAreas = GenerateRoadAreas(cityBounds, roadSegments);
-        var yellowAreas = GenerateCrossingAreas(cityBounds, crossings, nodes);
+        var largeRoadSegments = GenerateRoadSegments(largeRoads);
+        var smallRoadSegments = GenerateRoadSegments(smallRoads);
+        var redAreas = GenerateRoadAreas(cityBounds, largeRoadSegments);
+        var yellowAreas = GenerateRoadAreas(cityBounds, smallRoadSegments)
+            .Select(area => area.Polygon)
+            .Concat(GenerateCrossingAreas(cityBounds, crossings, nodes))
+            .ToList();
         logger.LogInformation(
-            "Generated unsafe map areas for city {CityId}. RoadSegments: {RoadSegmentCount}, RawRedAreas: {RawRedAreaCount}, YellowAreas: {YellowAreaCount}.",
+            "Generated unsafe map areas for city {CityId}. LargeRoadSegments: {LargeRoadSegmentCount}, SmallRoadSegments: {SmallRoadSegmentCount}, RawRedAreas: {RawRedAreaCount}, YellowAreas: {YellowAreaCount}.",
             city.CityId,
-            roadSegments.Count,
+            largeRoadSegments.Count,
+            smallRoadSegments.Count,
             redAreas.Count,
             yellowAreas.Count);
 

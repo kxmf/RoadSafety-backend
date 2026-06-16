@@ -22,6 +22,12 @@ internal static class OsmRoadClassifier
         return tags.TryGetValue("highway", out var highway) && RoadHighways.Contains(highway);
     }
 
+    public static bool IsSmallRoad(IReadOnlyDictionary<string, string> tags)
+    {
+        return tags.TryGetValue("highway", out var highway)
+               && highway is "unclassified" or "residential" or "service" or "living_street";
+    }
+
     public static bool IsCrossing(IReadOnlyDictionary<string, string> tags)
     {
         return tags.TryGetValue("highway", out var highway) && highway == "crossing"
