@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using RoadSafety_backend.Domain.Aggregates.DeviceTokenAggregate;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
@@ -23,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ChildStats> ChildStats { get; set; }
     public DbSet<ChildRiskState> ChildRiskStates { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<DeviceToken> DeviceTokens { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

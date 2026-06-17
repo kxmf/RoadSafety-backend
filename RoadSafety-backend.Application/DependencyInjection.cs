@@ -38,6 +38,8 @@ public static class DependencyInjection
         services.AddScoped<GetChildStatsUseCase>();
         services.AddScoped<GetNotificationsUseCase>();
         services.AddScoped<MarkNotificationReadUseCase>();
+        services.AddScoped<RegisterDeviceTokenUseCase>();
+        services.AddScoped<DeleteDeviceTokenUseCase>();
 
         return services;
     }

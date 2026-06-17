@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using RoadSafety_backend.Application.DTOs.Requests.Tracking;
 using RoadSafety_backend.Application.DTOs.Responses.Tracking;
 using RoadSafety_backend.Application.Interfaces;
+using RoadSafety_backend.Domain.Aggregates.DeviceTokenAggregate;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
 using RoadSafety_backend.Domain.Aggregates.NotificationAggregate;
@@ -18,8 +20,11 @@ public class SubmitLocationUseCase(
     IUserRepository userRepository,
     ITrackingRepository trackingRepository,
     INotificationRepository notificationRepository,
+    IDeviceTokenRepository deviceTokenRepository,
+    IPushNotificationSender pushNotificationSender,
     ICurrentUserAccessor userAccessor,
     IUnitOfWork unitOfWork,
+    ILogger<SubmitLocationUseCase> logger,
     IOptions<TrackingOptions> options)
 {
     private static readonly GeometryFactory GeometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
@@ -69,8 +74,16 @@ public class SubmitLocationUseCase(
 
         await trackingRepository.UpsertLocationAsync(location, cancellationToken);
         await trackingRepository.EnsureStatsAsync(childId, cancellationToken);
-        await UpdateRiskStateAndNotificationsAsync(access.Value.Family, childId, point, match.Risk, now, cancellationToken);
+        var notifications = await UpdateRiskStateAndNotificationsAsync(access.Value.Family, childId, point, match.Risk, now, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await SendPushNotificationsAsync(notifications, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Failed to send push notifications for child {ChildId}", childId.Value);
+        }
 
         return Result<SubmitLocationResponse>.Success(new SubmitLocationResponse(
             childId.Value,
@@ -80,7 +93,7 @@ public class SubmitLocationUseCase(
             now));
     }
 
-    private async Task UpdateRiskStateAndNotificationsAsync(
+    private async Task<IReadOnlyCollection<Notification>> UpdateRiskStateAndNotificationsAsync(
         RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family family,
         UserId childId,
         Point point,
@@ -101,7 +114,7 @@ public class SubmitLocationUseCase(
 
         var cooldown = TimeSpan.FromMinutes(Math.Max(0, options.Value.RedZoneNotificationCooldownMinutes));
         if (!state.ShouldCreateRedNotification(now, cooldown))
-            return;
+            return [];
 
         var parentIds = family.Members
             .Where(member => member.Role == FamilyMemberRole.Parent)
@@ -109,7 +122,7 @@ public class SubmitLocationUseCase(
             .ToList();
 
         if (parentIds.Count == 0)
-            return;
+            return [];
 
         var child = await userRepository.GetUserByIdAsync(childId, cancellationToken);
         var childDisplayName = TrackingResponseMapper.GetDisplayName(child);
@@ -120,10 +133,39 @@ public class SubmitLocationUseCase(
                 childId,
                 childDisplayName,
                 point,
-                now));
+                now))
+            .ToList();
 
         await notificationRepository.AddRangeAsync(notifications, cancellationToken);
         state.MarkRedNotificationCreated(now);
+
+        return notifications;
+    }
+
+    private async Task SendPushNotificationsAsync(IReadOnlyCollection<Notification> notifications, CancellationToken cancellationToken)
+    {
+        if (notifications.Count == 0)
+            return;
+
+        foreach (var notification in notifications)
+        {
+            var deviceTokens = await deviceTokenRepository.GetActiveByUserIdsAsync([notification.RecipientUserId], cancellationToken);
+            var tokens = deviceTokens.Select(deviceToken => deviceToken.Token).Distinct().ToList();
+            if (tokens.Count == 0)
+                continue;
+
+            var result = await pushNotificationSender.SendAsync(notification, tokens, cancellationToken);
+            if (result.InvalidTokens.Count == 0)
+                continue;
+
+            var invalidTokens = result.InvalidTokens.ToHashSet(StringComparer.Ordinal);
+            foreach (var deviceToken in deviceTokens.Where(deviceToken => invalidTokens.Contains(deviceToken.Token)))
+            {
+                deviceToken.Revoke(DateTimeOffset.UtcNow);
+            }
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private static bool IsValidCoordinate(double latitude, double longitude)
