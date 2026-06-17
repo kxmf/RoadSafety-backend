@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using RoadSafety_backend.Application.DTOs.Responses.Tracking;
 using RoadSafety_backend.Application.Interfaces;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
@@ -11,7 +12,8 @@ public class GetChildrenLocationsUseCase(
     IFamilyRepository familyRepository,
     IUserRepository userRepository,
     ITrackingRepository trackingRepository,
-    ICurrentUserAccessor userAccessor)
+    ICurrentUserAccessor userAccessor,
+    IOptions<TrackingOptions> options)
 {
     public async Task<Result<ChildLocationsResponse>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -36,7 +38,11 @@ public class GetChildrenLocationsUseCase(
                 childUsers[childId] = user;
         }
 
+        var minLastUpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-Math.Max(1, options.Value.ChildLocationFreshnessMinutes));
         var responses = locations
+            .Where(location => location.LastUpdatedAt >= minLastUpdatedAt)
+            .GroupBy(location => location.ChildId)
+            .Select(group => group.OrderByDescending(location => location.LastUpdatedAt).First())
             .Select(location =>
             {
                 childUsers.TryGetValue(location.ChildId, out var child);

@@ -19,6 +19,8 @@ public class MapsController(
     GetAlertZonesUseCase getAlertZonesUseCase,
     CreateBaseAreaOverrideUseCase createBaseAreaOverrideUseCase,
     CreateCustomUserMapAreaUseCase createCustomUserMapAreaUseCase,
+    DeleteBaseAreaOverrideUseCase deleteBaseAreaOverrideUseCase,
+    DeleteCustomUserMapAreaUseCase deleteCustomUserMapAreaUseCase,
     ILogger<MapsController> logger) : ControllerBase
 {
     private const string VectorTileContentType = "application/vnd.mapbox-vector-tile";
@@ -283,6 +285,70 @@ public class MapsController(
             DescribeCoordinates(result.Value.Geometry));
 
         return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    [HttpDelete("user-areas/custom/{areaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteCustomArea(
+        Guid areaId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Custom user map area deletion requested. AreaId: {AreaId}.", areaId);
+
+        var result = await deleteCustomUserMapAreaUseCase.ExecuteAsync(areaId, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Custom user map area deletion failed. AreaId: {AreaId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                areaId,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("user-areas/base-overrides")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteBaseOverride(
+        [FromQuery] Guid familyId,
+        [FromQuery] string baseAreaKey,
+        [FromQuery] Guid? childId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Base map area override deletion requested. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaKey: {BaseAreaKey}.",
+            familyId,
+            childId,
+            baseAreaKey);
+
+        var result = await deleteBaseAreaOverrideUseCase.ExecuteAsync(familyId, childId, baseAreaKey, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Base map area override deletion failed. FamilyId: {FamilyId}, ChildId: {ChildId}, BaseAreaKey: {BaseAreaKey}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                familyId,
+                childId,
+                baseAreaKey,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        return NoContent();
     }
 
     private static string DescribeCoordinates(GeoJsonGeometryDto? geometry)

@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<GetAlertZonesUseCase>();
         services.AddScoped<CreateBaseAreaOverrideUseCase>();
         services.AddScoped<CreateCustomUserMapAreaUseCase>();
+        services.AddScoped<DeleteBaseAreaOverrideUseCase>();
+        services.AddScoped<DeleteCustomUserMapAreaUseCase>();
         services.AddScoped<SubmitLocationUseCase>();
         services.AddScoped<GetChildLocationUseCase>();
         services.AddScoped<GetChildrenLocationsUseCase>();

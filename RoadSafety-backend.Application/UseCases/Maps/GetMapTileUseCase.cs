@@ -11,7 +11,7 @@ public class GetMapTileUseCase(IMapAreaRepository mapAreaRepository)
         if (string.IsNullOrWhiteSpace(cityId))
             return Result<byte[]>.Failure(Error.Validation("cityId is required."));
 
-        if (z < 12 || z > 18)
+        if (z < 9 || z > 18)
             return Result<byte[]>.Success([]);
 
         if (x < 0 || y < 0)

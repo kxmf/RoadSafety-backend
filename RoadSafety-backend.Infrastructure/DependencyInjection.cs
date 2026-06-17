@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RoadSafety_backend.Application.Interfaces;
+using RoadSafety_backend.Application.UseCases.Tracking;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.InviteCodeAggregate;
 using RoadSafety_backend.Domain.Aggregates.MapAggregate;
@@ -14,7 +15,6 @@ using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Repositories;
 using RoadSafety_backend.Infrastructure.Services;
 using RoadSafety_backend.Infrastructure.Services.MapGeneration;
 using RoadSafety_backend.Infrastructure.Services.Settings;
-using RoadSafety_backend.Application.UseCases.Tracking;
 
 namespace RoadSafety_backend.Infrastructure;
 

@@ -11,6 +11,12 @@ public sealed class UserMapAreaRepository(ApplicationDbContext dbContext) : IUse
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
+    public async Task<UserMapArea?> GetByIdAsync(UserMapAreaId id, CancellationToken cancellationToken)
+    {
+        return await _dbContext.UserMapAreas
+            .FirstOrDefaultAsync(area => area.Id == id, cancellationToken);
+    }
+
     public async Task<List<UserMapArea>> GetByFamilyAsync(FamilyId familyId, UserId? childId, CancellationToken cancellationToken)
     {
         return await _dbContext.UserMapAreas
@@ -48,6 +54,26 @@ public sealed class UserMapAreaRepository(ApplicationDbContext dbContext) : IUse
         await _dbContext.UserMapAreas.AddAsync(userMapArea, cancellationToken);
 
         return userMapArea;
+    }
+
+    public Task DeleteAsync(UserMapArea userMapArea, CancellationToken cancellationToken)
+    {
+        _dbContext.UserMapAreas.Remove(userMapArea);
+
+        return Task.CompletedTask;
+    }
+
+    public async Task DeleteBaseOverrideAsync(FamilyId familyId, UserId? childId, string baseAreaKey, CancellationToken cancellationToken)
+    {
+        var overrides = await _dbContext.UserMapAreas
+            .Where(area =>
+                area.FamilyId == familyId &&
+                area.ChildId == childId &&
+                area.BaseAreaKey == baseAreaKey &&
+                area.Geometry == null)
+            .ToListAsync(cancellationToken);
+
+        _dbContext.UserMapAreas.RemoveRange(overrides);
     }
 
     public async Task DeleteFamilyAreasAsync(FamilyId familyId, CancellationToken cancellationToken)
