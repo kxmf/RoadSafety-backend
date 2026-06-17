@@ -4,7 +4,7 @@ using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 
 namespace RoadSafety_backend.Application.UseCases.Tracking;
 
-internal static class TrackingResponseMapper
+public static class TrackingResponseMapper
 {
     public static ChildLocationResponse ToResponse(ChildLocation location, User? child)
     {
@@ -20,6 +20,12 @@ internal static class TrackingResponseMapper
 
     public static string GetDisplayName(User? user)
     {
+        var displayName = GetProfileDisplayName(user);
+        return displayName.Length > 0 ? displayName : GetLogin(user);
+    }
+
+    public static string GetProfileDisplayName(User? user)
+    {
         if (user?.Profile is null)
             return string.Empty;
 
@@ -27,8 +33,20 @@ internal static class TrackingResponseMapper
         {
             user.Profile.FirstName,
             user.Profile.LastName
-        }.Where(part => !string.IsNullOrWhiteSpace(part));
+        }
+        .Where(part => !string.IsNullOrWhiteSpace(part))
+        .Select(part => part!.Trim());
 
         return string.Join(' ', parts);
+    }
+
+    public static string GetLogin(User? user)
+    {
+        if (user is null)
+            return string.Empty;
+
+        return user.Contacts.MailAddress?.Address
+               ?? user.Contacts.PhoneNumber?.Value
+               ?? string.Empty;
     }
 }
