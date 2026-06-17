@@ -23,10 +23,4 @@
     <ProjectReference Include="..\RoadSafety-backend.Infrastructure\RoadSafety-backend.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Middlewares\" />
-    <Folder Include="Fitlers\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>

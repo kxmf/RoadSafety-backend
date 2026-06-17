@@ -12,8 +12,12 @@ public static class DependencyInjection
     public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtSettings = new JwtSettings();
-        configuration.GetSection("JWTSettings").Bind(jwtSettings);
-        services.Configure<JwtSettings>(configuration.GetSection("JWTSettings"));
+        configuration.GetSection("JwtSettings").Bind(jwtSettings);
+        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+        if (string.IsNullOrWhiteSpace(jwtSettings.Secret))
+            throw new InvalidOperationException("JwtSettings:Secret is not configured. Set JwtSettings__Secret.");
+
         services.AddHttpContextAccessor();
         services.AddControllers()
             .AddJsonOptions(options =>

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -8,8 +7,8 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
-        var appSettingsPath = FindAppSettingsPath();
-        var connectionString = GetDefaultConnectionString(appSettingsPath);
+        LoadDotEnv();
+        var connectionString = GetDefaultConnectionString();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(
@@ -19,29 +18,44 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
         return new ApplicationDbContext(optionsBuilder.Options);
     }
 
-    private static string FindAppSettingsPath()
+    private static string GetDefaultConnectionString()
+    {
+        return Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+               ?? Environment.GetEnvironmentVariable("ConnectionStrings:DefaultConnection")
+               ?? throw new InvalidOperationException(
+                   "Default connection string is not configured. Set ConnectionStrings__DefaultConnection.");
+    }
+
+    private static void LoadDotEnv()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
 
         while (directory is not null)
         {
-            var appSettingsPath = Path.Combine(directory.FullName, "RoadSafety-backend.Presentation", "appsettings.json");
-            if (File.Exists(appSettingsPath))
-                return appSettingsPath;
+            var path = Path.Combine(directory.FullName, ".env");
+            if (File.Exists(path))
+            {
+                foreach (var line in File.ReadAllLines(path))
+                {
+                    var trimmedLine = line.Trim();
+                    if (trimmedLine.Length == 0 || trimmedLine.StartsWith('#'))
+                        continue;
+
+                    var separatorIndex = trimmedLine.IndexOf('=');
+                    if (separatorIndex <= 0)
+                        continue;
+
+                    var key = trimmedLine[..separatorIndex].Trim();
+                    var value = trimmedLine[(separatorIndex + 1)..].Trim().Trim('"', '\'');
+
+                    if (Environment.GetEnvironmentVariable(key) is null)
+                        Environment.SetEnvironmentVariable(key, value);
+                }
+
+                return;
+            }
 
             directory = directory.Parent;
         }
-
-        throw new FileNotFoundException("Could not find RoadSafety-backend.Presentation/appsettings.json.");
-    }
-
-    private static string GetDefaultConnectionString(string appSettingsPath)
-    {
-        using var document = JsonDocument.Parse(File.ReadAllText(appSettingsPath));
-
-        return document.RootElement
-            .GetProperty("ConnectionStrings")
-            .GetProperty("DefaultConnection")
-            .GetString() ?? throw new InvalidOperationException("DefaultConnection is not configured.");
     }
 }
