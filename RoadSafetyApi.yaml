@@ -1,4 +1,4 @@
-﻿openapi: 3.1.0
+openapi: 3.1.0
 info:
   title: RoadSafety API
   version: "1.0.0"
@@ -267,6 +267,49 @@ paths:
                 $ref: "#/components/schemas/BadRequestProblemDetails"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /families/{familyId}:
+    get:
+      tags:
+        - Families
+      summary: Get family details
+      description: |
+        Returns family details, including the family name, creator ID, and city ID.
+        Available only to members of this family.
+      operationId: getFamily
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Family identifier
+      responses:
+        "200":
+          description: Family details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetFamilyResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "403":
+          description: Forbidden (user is not a member of the family)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Family not found
           content:
             application/json:
               schema:
@@ -1078,7 +1121,7 @@ components:
           description: РќР°Р·РІР°РЅРёРµ СЃРµРјСЊРё (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ).
         cityId:
           type: string
-          description: РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РіРѕСЂРѕРґР° СЃРµРјСЊРё (РЅР°РїСЂРёРјРµСЂ, "ekb").
+          description: Р˜РґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РіРѕСЂРѕРґР° СЃРµРјСЊРё (РЅР°РїСЂРёРјРµСЂ, "ekb").
 
     CreateFamilyResponse:
       type: object
@@ -1092,6 +1135,27 @@ components:
         createdByUserId:
           type: string
           format: uuid
+
+    GetFamilyResponse:
+      type: object
+      required:
+        - id
+        - createdByUserId
+        - cityId
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+          description: Family name.
+        createdByUserId:
+          type: string
+          format: uuid
+        cityId:
+          type: string
+          description: Family city identifier.
 
     GetFamilyMembersResponse:
       type: object

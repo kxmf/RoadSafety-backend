@@ -12,12 +12,14 @@ public sealed class FamilyRepository(ApplicationDbContext dbContext) : IFamilyRe
     public async Task<Family?> GetFamilyByIdAsync(FamilyId id, CancellationToken cancellationToken)
     {
         return await _dbContext.Families
+            .Include(f => f.Members)
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
     }
 
     public async Task<Family?> GetFamilyByMemberUserIdAsync(UserId userId, CancellationToken cancellationToken)
     {
         return await _dbContext.Families
+            .Include(f => f.Members)
             .FirstOrDefaultAsync(f => f.Members.Any(m => m.UserId == userId), cancellationToken);
     }
 

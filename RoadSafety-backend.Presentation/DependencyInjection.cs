@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Json;
@@ -15,8 +14,7 @@ public static class DependencyInjection
         configuration.GetSection("JwtSettings").Bind(jwtSettings);
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
 
-        if (string.IsNullOrWhiteSpace(jwtSettings.Secret))
-            throw new InvalidOperationException("JwtSettings:Secret is not configured. Set JwtSettings__Secret.");
+        var jwtSecretBytes = jwtSettings.GetSecretBytes();
 
         services.AddHttpContextAccessor();
         services.AddControllers()
@@ -46,7 +44,7 @@ public static class DependencyInjection
                 ValidAudience = jwtSettings.Audience,
 
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+                IssuerSigningKey = new SymmetricSecurityKey(jwtSecretBytes),
 
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero

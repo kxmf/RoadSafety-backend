@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<RefreshTokensUseCase>();
         services.AddScoped<RegisterUseCase>();
         services.AddScoped<CreateFamilyUseCase>();
+        services.AddScoped<GetFamilyUseCase>();
         services.AddScoped<GetFamilyMembersUseCase>();
         services.AddScoped<JoinFamilyByInviteCodeUseCase>();
         services.AddScoped<CreateInviteCodeUseCase>();

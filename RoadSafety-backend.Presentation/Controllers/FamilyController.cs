@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadSafety_backend.Application.DTOs.Requests.Family;
 using RoadSafety_backend.Application.DTOs.Responses.Family;
@@ -12,6 +12,7 @@ namespace RoadSafety_backend.Presentation.Controllers;
 [Authorize]
 public class FamilyController(
     CreateFamilyUseCase createFamilyUseCase,
+    GetFamilyUseCase getFamilyUseCase,
     GetFamilyMembersUseCase getFamilyMembersUseCase,
     JoinFamilyByInviteCodeUseCase joinFamilyByInviteCodeUseCase,
     CreateInviteCodeUseCase createInviteCodeUseCase,
@@ -46,6 +47,34 @@ public class FamilyController(
             result.Value.CreatedByUserId);
 
         return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    [HttpGet("{familyId}")]
+    [ProducesResponseType(typeof(GetFamilyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetFamily(Guid familyId, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Family details requested. FamilyId: {FamilyId}.", familyId);
+
+        var request = new GetFamilyRequest(familyId);
+        var result = await getFamilyUseCase.ExecuteAsync(request, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning(
+                "Family details request failed. FamilyId: {FamilyId}, ErrorType: {ErrorType}, ErrorMessage: {ErrorMessage}.",
+                familyId,
+                result.Error.Type,
+                result.Error.Message);
+
+            return this.ToProblem(result.Error);
+        }
+
+        logger.LogInformation("Family details returned. FamilyId: {FamilyId}.", familyId);
+
+        return Ok(result.Value);
     }
 
     [HttpPut("{familyId}/city")]
