@@ -230,3 +230,6 @@ Thumbs.db
 
 # Rider
 .idea/
+
+# Docker Environment
+.env
