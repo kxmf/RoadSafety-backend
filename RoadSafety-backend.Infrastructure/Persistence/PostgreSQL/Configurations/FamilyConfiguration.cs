@@ -19,6 +19,11 @@ public class FamilyConfiguration : IEntityTypeConfiguration<Family>
         builder.Property(f => f.Name)
             .HasColumnName("name");
 
+        builder.Property(f => f.CityId)
+            .HasColumnName("city_id")
+            .HasColumnType("varchar(50)")
+            .IsRequired();
+
         builder.Metadata.FindNavigation(nameof(Family.Members))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
 

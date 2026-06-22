@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Context;
 
@@ -21,12 +22,63 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.DeviceTokenAggregate.DeviceToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("platform");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)")
+                        .HasColumnName("token");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasFilter("revoked_at IS NULL");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("device_tokens", (string)null);
+                });
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("CityId")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("city_id");
 
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uuid")
@@ -97,6 +149,201 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                         .IsUnique();
 
                     b.ToTable("invite_codes", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.MapAggregate.MapArea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BaseAreaKey")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("base_area_key");
+
+                    b.Property<string>("CityId")
+                        .HasColumnType("varchar")
+                        .HasColumnName("city_id");
+
+                    b.Property<Polygon>("Geometry")
+                        .IsRequired()
+                        .HasColumnType("geometry(Polygon, 4326)")
+                        .HasColumnName("geom");
+
+                    b.Property<long?>("OsmId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("osm_id");
+
+                    b.Property<string>("Risk")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("risk");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseAreaKey")
+                        .IsUnique();
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("Geometry")
+                        .HasDatabaseName("map_areas_geom_idx");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Geometry"), "gist");
+
+                    b.HasIndex("Risk");
+
+                    b.ToTable("map_areas", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.MapAggregate.MapCityMetadata", b =>
+                {
+                    b.Property<string>("CityId")
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("city_id");
+
+                    b.Property<DateTimeOffset>("GenerationVersion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("generation_version");
+
+                    b.Property<double>("MaxLat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("max_lat");
+
+                    b.Property<double>("MaxLon")
+                        .HasColumnType("double precision")
+                        .HasColumnName("max_lon");
+
+                    b.Property<double>("MinLat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("min_lat");
+
+                    b.Property<double>("MinLon")
+                        .HasColumnType("double precision")
+                        .HasColumnName("min_lon");
+
+                    b.HasKey("CityId");
+
+                    b.ToTable("map_city_metadata", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.MapAggregate.UserMapArea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BaseAreaKey")
+                        .HasColumnType("varchar")
+                        .HasColumnName("base_area_key");
+
+                    b.Property<Guid?>("ChildId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now() at time zone 'utc'");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<Polygon>("Geometry")
+                        .HasColumnType("geometry(Polygon, 4326)")
+                        .HasColumnName("geom");
+
+                    b.Property<string>("Risk")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("risk");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now() at time zone 'utc'");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseAreaKey");
+
+                    b.HasIndex("ChildId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("Geometry")
+                        .HasDatabaseName("user_areas_geom_idx");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Geometry"), "gist");
+
+                    b.HasIndex("FamilyId", "ChildId");
+
+                    b.ToTable("user_map_areas", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.NotificationAggregate.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("body");
+
+                    b.Property<Guid?>("ChildId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Point>("Location")
+                        .HasColumnType("geometry(Point, 4326)")
+                        .HasColumnName("location");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_user_id");
+
+                    b.Property<string>("Risk")
+                        .HasColumnType("varchar")
+                        .HasColumnName("risk");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChildId");
+
+                    b.HasIndex("RecipientUserId", "ReadAt", "CreatedAt");
+
+                    b.ToTable("notifications", (string)null);
                 });
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.SessionAggregate.RefreshToken", b =>
@@ -173,6 +420,105 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.ToTable("sessions", (string)null);
                 });
 
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildLocation", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_id");
+
+                    b.Property<double?>("AccuracyMeters")
+                        .HasColumnType("double precision")
+                        .HasColumnName("accuracy_meters");
+
+                    b.Property<string>("CurrentRisk")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("current_risk");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<DateTimeOffset>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_updated_at");
+
+                    b.Property<Point>("Location")
+                        .IsRequired()
+                        .HasColumnType("geometry(Point, 4326)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("MatchedBaseAreaKey")
+                        .HasColumnType("varchar")
+                        .HasColumnName("matched_base_area_key");
+
+                    b.Property<Guid?>("MatchedUserAreaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("matched_user_area_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.HasKey("ChildId");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("Location")
+                        .HasDatabaseName("child_locations_location_idx");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Location"), "gist");
+
+                    b.ToTable("child_locations", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildRiskState", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_id");
+
+                    b.Property<string>("CurrentRisk")
+                        .IsRequired()
+                        .HasColumnType("varchar")
+                        .HasColumnName("current_risk");
+
+                    b.Property<DateTimeOffset?>("EnteredRedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("entered_red_at");
+
+                    b.Property<DateTimeOffset?>("LastRedNotificationAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_red_notification_at");
+
+                    b.Property<DateTimeOffset>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_updated_at");
+
+                    b.HasKey("ChildId");
+
+                    b.ToTable("child_risk_states", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildStats", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_id");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.Property<int>("TotalScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_score");
+
+                    b.HasKey("ChildId");
+
+                    b.ToTable("child_stats", (string)null);
+                });
+
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -193,6 +539,15 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.DeviceTokenAggregate.DeviceToken", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", b =>
@@ -247,6 +602,40 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.MapAggregate.UserMapArea", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", null)
+                        .WithMany()
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.NotificationAggregate.Notification", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.SessionAggregate.RefreshToken", b =>
                 {
                     b.HasOne("RoadSafety_backend.Domain.Aggregates.SessionAggregate.RefreshToken", null)
@@ -272,6 +661,39 @@ namespace RoadSafety_backend.Infrastructure.Persistence.PostgreSQL.Migrations
                     b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildLocation", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.FamilyAggregate.Family", null)
+                        .WithMany()
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildRiskState", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadSafety_backend.Domain.Aggregates.TrackingAggregate.ChildStats", b =>
+                {
+                    b.HasOne("RoadSafety_backend.Domain.Aggregates.UserAggregate.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

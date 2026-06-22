@@ -8,6 +8,8 @@ public class Family
 
     public UserId CreatedByUserId { get; init; } = null!;
 
+    public string CityId { get; private set; } = string.Empty;
+
     private readonly List<FamilyMember> _members = [];
 
     public string? Name { get; set; }
@@ -16,22 +18,32 @@ public class Family
 
     private Family() { }
 
-    private Family(FamilyId id, UserId createdByUserId)
+    private Family(FamilyId id, UserId createdByUserId, string cityId)
     {
         Id = id;
         CreatedByUserId = createdByUserId;
+        CityId = cityId;
     }
 
-    public static Family Create(string? name, FamilyId id, UserId createdByUserId)
+    public static Family Create(string? name, FamilyId id, UserId createdByUserId, string cityId)
     {
         ArgumentNullException.ThrowIfNull(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cityId);
+
         if (id.Value == Guid.Empty)
             throw new ArgumentException("Family ID cannot be empty.", nameof(id));
 
-        return new Family(id, createdByUserId)
+        return new Family(id, createdByUserId, cityId.Trim())
         {
             Name = name
         };
+    }
+
+    public void UpdateCity(string cityId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cityId);
+
+        CityId = cityId.Trim();
     }
 
     public void AddMember(FamilyMember familyMember) => _members.Add(familyMember);

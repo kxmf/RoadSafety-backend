@@ -1,6 +1,7 @@
-﻿using RoadSafety_backend.Application.DTOs.Requests.Family;
+using RoadSafety_backend.Application.DTOs.Requests.Family;
 using RoadSafety_backend.Application.DTOs.Responses.Family;
 using RoadSafety_backend.Application.Interfaces;
+using RoadSafety_backend.Application.UseCases.Tracking;
 using RoadSafety_backend.Domain.Aggregates.FamilyAggregate;
 using RoadSafety_backend.Domain.Aggregates.UserAggregate;
 using RoadSafety_backend.Domain.Common;
@@ -9,6 +10,7 @@ namespace RoadSafety_backend.Application.UseCases.Family;
 
 public class GetFamilyMembersUseCase(
     IFamilyRepository familyRepository,
+    IUserRepository userRepository,
     ICurrentUserAccessor userAccessor
 )
 {
@@ -31,8 +33,24 @@ public class GetFamilyMembersUseCase(
         if (!isMember)
             return Result<GetFamilyMembersResponse>.Failure(Error.Unauthorized("User is not a member of the family."));
 
+        var users = new Dictionary<UserId, User>();
+        foreach (var member in family.Members)
+        {
+            var user = await userRepository.GetUserByIdAsync(member.UserId, cancellationToken);
+            if (user is not null)
+                users[member.UserId] = user;
+        }
+
         var members = family.Members
-            .Select(m => new MemberDto(m.UserId.Value, m.Role.ToString()))
+            .Select(m =>
+            {
+                users.TryGetValue(m.UserId, out var user);
+                return new MemberDto(
+                    m.UserId.Value,
+                    m.Role.ToString(),
+                    TrackingResponseMapper.GetProfileDisplayName(user),
+                    TrackingResponseMapper.GetLogin(user));
+            })
             .ToList();
 
         var response = new GetFamilyMembersResponse(members);

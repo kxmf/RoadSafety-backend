@@ -18,7 +18,10 @@ public class CreateFamilyUseCase(
         if (!userAccessor.IsAuthenticated || userAccessor.UserId is null || userAccessor.UserId == UserId.Empty)
             return Result<CreateFamilyResponse>.Failure(Error.Unauthorized("User not authenticated."));
 
-        var family = Domain.Aggregates.FamilyAggregate.Family.Create(request.Name, new FamilyId(Guid.NewGuid()), userAccessor.UserId);
+        if (string.IsNullOrWhiteSpace(request.CityId))
+            return Result<CreateFamilyResponse>.Failure(Error.Validation("cityId is required."));
+
+        var family = Domain.Aggregates.FamilyAggregate.Family.Create(request.Name, new FamilyId(Guid.NewGuid()), userAccessor.UserId, request.CityId);
         var familyMember = FamilyMember.Create(userAccessor.UserId, FamilyMemberRole.Parent);
         family.Name = request.Name;
         family.AddMember(familyMember);

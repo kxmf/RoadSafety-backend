@@ -40,4 +40,8 @@ public sealed record UserContacts
 
         return Result<UserContacts>.Success(new UserContacts(mail, phone));
     }
+
+    public static UserContacts FromEmail(MailAddress mailAddress) => new(mailAddress, null);
+
+    public static UserContacts FromPhone(PhoneNumber phoneNumber) => new(null, phoneNumber);
 }

@@ -22,6 +22,8 @@ public class GetCurrentUserUseCase(
             return Result<UserResponse>.Failure(Error.NotFound("User not found"));
 
         var family = await familyRepository.GetFamilyByMemberUserIdAsync(currentUserAccessor.UserId, cancellationToken);
+        var familyRole = family?.Members.FirstOrDefault(member => member.UserId == currentUserAccessor.UserId)?.Role
+            ?? (family?.CreatedByUserId == currentUserAccessor.UserId ? FamilyMemberRole.Parent : null as FamilyMemberRole?);
 
         var response = new UserResponse(
             user.Id,
@@ -31,7 +33,8 @@ public class GetCurrentUserUseCase(
             user.Profile?.LastName,
             user.Profile?.Patronymic,
             user.Profile?.BirthDate,
-            family?.Id.Value
+            family?.Id.Value,
+            familyRole?.ToString()
         );
 
         return Result<UserResponse>.Success(response);

@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Json;
@@ -12,8 +11,11 @@ public static class DependencyInjection
     public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtSettings = new JwtSettings();
-        configuration.GetSection("JWTSettings").Bind(jwtSettings);
-        services.Configure<JwtSettings>(configuration.GetSection("JWTSettings"));
+        configuration.GetSection("JwtSettings").Bind(jwtSettings);
+        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+        var jwtSecretBytes = jwtSettings.GetSecretBytes();
+
         services.AddHttpContextAccessor();
         services.AddControllers()
             .AddJsonOptions(options =>
@@ -42,7 +44,7 @@ public static class DependencyInjection
                 ValidAudience = jwtSettings.Audience,
 
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+                IssuerSigningKey = new SymmetricSecurityKey(jwtSecretBytes),
 
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
