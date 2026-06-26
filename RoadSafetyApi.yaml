@@ -4,6 +4,7 @@ info:
   version: 1.0.0
 servers:
   - url: https://roadsafety.my.to/
+  - url: 127.0.0.1:5103
 paths:
   /api/auth/register:
     post:

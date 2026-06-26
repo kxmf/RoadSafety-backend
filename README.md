@@ -20,7 +20,7 @@ Backend проекта `RoadSafety` на .NET 10.0.
 - tracking: отправка геолокации ребенка, текущие координаты и статистика
 - notifications: уведомления и device tokens
 
-### Сборка и зависимости
+### Зависимости
 
 - .NET SDK 10.0
 - PostgreSQL 16 с PostGIS
@@ -30,12 +30,7 @@ Backend проекта `RoadSafety` на .NET 10.0.
 
 ## Запуск
 
-### 1. Установить зависимости
-
-- .NET SDK 10.0
-- Docker Desktop или совместимый Docker Engine
-
-### 2. Подготовить конфигурацию
+### 1. Подготовить конфигурацию
 
 Скопировать `.env.example` в `.env` и проверить значения:
 
@@ -45,19 +40,15 @@ Backend проекта `RoadSafety` на .NET 10.0.
 - `Fcm__Enabled`
 - `Fcm__ServiceAccountJsonPath` или `Fcm__ServiceAccountJson`
 
-Важно:
-
 - по умолчанию приложение в Development пытается загрузить `google-service.json`
 - если Firebase не нужен локально, проще выставить `Fcm__Enabled=false`
 - если Firebase нужен => service account JSON в путь из `appsettings.json`
 
-### 3. Поднять базу
+### 2. Поднять БД
 
 ```bash
 docker compose up -d
 ```
-
-Это поднимет:
 
 - PostgreSQL/PostGIS на `localhost:5432` по умолчанию
 - PgAdmin на `localhost:8080` по умолчанию
