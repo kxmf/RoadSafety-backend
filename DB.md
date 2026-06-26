@@ -13,22 +13,22 @@ Table users {
   birth_date date
   mail_address citext [unique]
   phone_number varchar(40) [unique]
-  created_at timestamp [not null, default: "now()"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
 }
 
 Table families {
   Id uuid [pk]
   created_by_user_id uuid [not null]
   name text
-  city_id varchar [note: "Assigned city for safety zones"]
-  created_at timestamp [not null, default: "now()"]
+  city_id varchar(50) [not null, note: "Assigned city for safety zones"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
 }
 
 Table family_members {
   FamilyId uuid [not null]
   UserId uuid [not null]
-  Role int [not null, note: "FamilyMemberRole enum value"]
-  joined_at timestamp [not null, default: "now()"]
+  Role int [not null, note: "FamilyMemberRole: 0=Parent, 1=Child"]
+  joined_at timestamp [not null, default: "now() at time zone 'utc'"]
 
   indexes {
     (FamilyId, UserId) [pk]
@@ -45,7 +45,7 @@ Table invite_codes {
   expires_at timestamp [not null]
   accepted_at timestamp
   is_used bool [not null]
-  created_at timestamp [not null, default: "now()"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
 
   indexes {
     value [unique]
@@ -58,7 +58,7 @@ Table sessions {
   Id uuid [pk]
   UserId uuid [not null]
   is_revoked bool [not null]
-  created_at timestamp [not null, default: "now()"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
 
   indexes {
     UserId
@@ -73,7 +73,7 @@ Table refresh_tokens {
   is_used bool [not null]
   is_revoked bool [not null]
   replaced_by_token_id uuid
-  created_at timestamp [not null, default: "now()"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
   session_id uuid [not null]
 
   indexes {
@@ -87,7 +87,7 @@ Table map_areas {
   id uuid [pk]
   osm_id bigint [note: "Nullable for generated green zones"]
   base_area_key varchar [not null, unique, note: "Stable base polygon key used by family overrides"]
-  risk risk_level [not null]
+  risk varchar [not null, note: "RiskLevel string: Green, Yellow, Red"]
   geom geometry(Polygon, 4326) [not null, note: "PostGIS polygon in WGS84"]
   city_id varchar [note: "Batch update key"]
 
@@ -104,11 +104,11 @@ Table user_map_areas {
   family_id uuid [not null]
   child_id uuid [note: "Null means the area applies to all children in the family"]
   base_area_key varchar [note: "Set for risk-only override of a generated base area; null for custom polygons"]
-  risk risk_level [not null]
+  risk varchar [not null, note: "RiskLevel string: Green, Yellow, Red"]
   geom geometry(Polygon, 4326) [note: "Set for custom polygons; null for base-area overrides"]
   created_by_user_id uuid [not null]
-  created_at timestamp [not null, default: "now()"]
-  updated_at timestamp [not null, default: "now()"]
+  created_at timestamp [not null, default: "now() at time zone 'utc'"]
+  updated_at timestamp [not null, default: "now() at time zone 'utc'"]
 
   indexes {
     geom [type: gist, name: "user_areas_geom_idx"]
@@ -117,12 +117,38 @@ Table user_map_areas {
   }
 }
 
+Table map_city_metadata {
+  city_id varchar(50) [pk]
+  generation_version timestamp [not null, note: "Version of the last map generation for this city"]
+  min_lon double [not null]
+  min_lat double [not null]
+  max_lon double [not null]
+  max_lat double [not null]
+}
+
 Table child_locations {
   child_id uuid [pk]
-  geom geometry(Point, 4326) [not null]
+  family_id uuid [not null]
+  location geometry(Point, 4326) [not null]
   accuracy_meters double
+  current_risk varchar [not null, note: "RiskLevel string: Green, Yellow, Red"]
+  matched_user_area_id uuid [note: "ID of the matching user_map_area, if any"]
+  matched_base_area_key varchar [note: "Key of the matching map_area, if any"]
+  recorded_at timestamp [not null]
   last_updated_at timestamp [not null]
-  current_risk risk_level [not null]
+
+  indexes {
+    family_id
+    location [type: gist, name: "child_locations_location_idx"]
+  }
+}
+
+Table child_risk_states {
+  child_id uuid [pk]
+  current_risk varchar [not null, note: "RiskLevel string: Green, Yellow, Red"]
+  entered_red_at timestamp [note: "When the child first entered the red zone"]
+  last_red_notification_at timestamp [note: "Last time a red-zone notification was sent"]
+  last_updated_at timestamp [not null]
 }
 
 Table child_stats {
@@ -131,14 +157,35 @@ Table child_stats {
   rating int [not null, default: 0]
 }
 
-Table location_history {
+Table notifications {
   id uuid [pk]
-  child_id uuid [not null]
-  date date [not null]
-  route geometry(LineString, 4326) [not null]
+  recipient_user_id uuid [not null]
+  child_id uuid [note: "The child related to the notification"]
+  type varchar [not null, note: "NotificationType string: ChildEnteredRedZone"]
+  title varchar(200) [not null]
+  body varchar(1000) [not null]
+  risk varchar [note: "RiskLevel string: Green, Yellow, Red"]
+  location geometry(Point, 4326) [note: "Location where the event occurred"]
+  created_at timestamp [not null]
+  read_at timestamp
 
   indexes {
-    (child_id, date)
+    (recipient_user_id, read_at, created_at)
+  }
+}
+
+Table device_tokens {
+  id uuid [pk]
+  user_id uuid [not null]
+  token varchar(4096) [not null, note: "FCM device token"]
+  platform varchar [not null, note: "DevicePlatform string: Android"]
+  created_at timestamp [not null]
+  last_seen_at timestamp [not null]
+  revoked_at timestamp
+
+  indexes {
+    token [unique, note: "Filtered unique: WHERE revoked_at IS NULL"]
+    user_id
   }
 }
 
@@ -159,5 +206,13 @@ Ref: user_map_areas.child_id > users.Id [delete: cascade]
 Ref: user_map_areas.created_by_user_id > users.Id [delete: restrict]
 
 Ref: child_locations.child_id > users.Id [delete: cascade]
+Ref: child_locations.family_id > families.Id [delete: cascade]
+
+Ref: child_risk_states.child_id > users.Id [delete: cascade]
+
 Ref: child_stats.child_id > users.Id [delete: cascade]
-Ref: location_history.child_id > users.Id [delete: cascade]
+
+Ref: notifications.recipient_user_id > users.Id [delete: cascade]
+Ref: notifications.child_id > users.Id [delete: cascade]
+
+Ref: device_tokens.user_id > users.Id [delete: cascade]
